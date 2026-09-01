@@ -10,15 +10,18 @@ create extension if not exists pgcrypto;
 create table if not exists players (
   id uuid primary key default gen_random_uuid(),
   name text unique not null,
-  pin text not null check (pin ~ '^[0-9]{4}$'),
+  pin text unique not null check (pin ~ '^[0-9]{6}$'),
   avatar text not null default '🎉',
   role text not null default 'player' check (role in ('admin', 'player')),
   created_at timestamptz not null default now()
 );
 
--- Si ya tenías la tabla creada de antes, ejecuta esto una vez para
--- añadir la columna sin perder los jugadores existentes:
+-- Si ya tenías la tabla creada de antes (con PIN de 4 dígitos, sin
+-- avatar), ejecuta esto una vez para actualizarla sin perder jugadores:
 -- alter table players add column if not exists avatar text not null default '🎉';
+-- alter table players drop constraint if exists players_pin_check;
+-- alter table players add constraint players_pin_check check (pin ~ '^[0-9]{6}$');
+-- alter table players add constraint players_pin_key unique (pin);
 
 create table if not exists pruebas (
   id uuid primary key default gen_random_uuid(),
@@ -118,7 +121,7 @@ $$;
 
 grant execute on function login_jugador(text, text) to anon;
 
--- Crear una cuenta nueva (nombre + PIN de 4 dígitos + avatar emoji)
+-- Crear una cuenta nueva (nombre + PIN de 6 dígitos, único + avatar emoji)
 create or replace function registrar_jugador(p_name text, p_pin text, p_avatar text)
 returns table(id uuid, name text, avatar text, role text, ok boolean, error text)
 language plpgsql
@@ -129,6 +132,9 @@ declare
 begin
   if exists (select 1 from players p where lower(p.name) = lower(p_name)) then
     return query select null::uuid, null::text, null::text, null::text, false, 'Ya existe una cuenta con ese nombre'::text;
+  end if;
+  if exists (select 1 from players p where p.pin = p_pin) then
+    return query select null::uuid, null::text, null::text, null::text, false, 'Ese PIN ya está en uso, elige otro'::text;
   end if;
   insert into players(name, pin, avatar) values (trim(p_name), p_pin, coalesce(p_avatar, '🎉'))
   returning * into v_new;

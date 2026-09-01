@@ -14,12 +14,12 @@ function crearClienteMock() {
   const uid = (() => { let n = 0; return (p) => `${p}-${++n}`; })();
 
   const players = [
-    { id: 'p-admin', name: 'Jon (admin)', role: 'admin', pin: '1234', avatar: '😈' },
-    { id: 'p-ana', name: 'Ana', role: 'player', pin: '1111', avatar: '🔥' },
-    { id: 'p-marc', name: 'Marc', role: 'player', pin: '2222', avatar: '🦀' },
-    { id: 'p-lucia', name: 'Lucía', role: 'player', pin: '3333', avatar: '🥂' },
-    { id: 'p-pol', name: 'Pol', role: 'player', pin: '4444', avatar: '🦭' },
-    { id: 'p-noa', name: 'Noa', role: 'player', pin: '5555', avatar: '🌵' },
+    { id: 'p-admin', name: 'Jon (admin)', role: 'admin', pin: '123456', avatar: '😈' },
+    { id: 'p-ana', name: 'Ana', role: 'player', pin: '111111', avatar: '🔥' },
+    { id: 'p-marc', name: 'Marc', role: 'player', pin: '222222', avatar: '🦀' },
+    { id: 'p-lucia', name: 'Lucía', role: 'player', pin: '333333', avatar: '🥂' },
+    { id: 'p-pol', name: 'Pol', role: 'player', pin: '444444', avatar: '🦭' },
+    { id: 'p-noa', name: 'Noa', role: 'player', pin: '555555', avatar: '🌵' },
   ];
 
   const textos = [
@@ -162,6 +162,9 @@ function crearClienteMock() {
       const nombre = (p_name || '').trim();
       if (players.some(pl => pl.name.toLowerCase() === nombre.toLowerCase())) {
         return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'Ya existe una cuenta con ese nombre' }]);
+      }
+      if (players.some(pl => pl.pin === p_pin)) {
+        return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'Ese PIN ya está en uso, elige otro' }]);
       }
       const nuevo = { id: uid('player'), name: nombre, role: 'player', pin: p_pin, avatar: p_avatar || '🎉' };
       players.push(nuevo);

@@ -158,8 +158,8 @@ function initLoginForm() {
     const errorEl = $('#login-error');
     errorEl.classList.add('hidden');
 
-    if (!/^[0-9]{4}$/.test(pin)) {
-      errorEl.textContent = 'El PIN debe tener 4 dígitos.';
+    if (!/^[0-9]{6}$/.test(pin)) {
+      errorEl.textContent = 'El PIN debe tener 6 dígitos.';
       errorEl.classList.remove('hidden');
       return;
     }
@@ -190,8 +190,8 @@ function initRegistroForm() {
     const errorEl = $('#registro-error');
     errorEl.classList.add('hidden');
 
-    if (!/^[0-9]{4}$/.test(pin)) {
-      errorEl.textContent = 'El PIN debe tener 4 dígitos.';
+    if (!/^[0-9]{6}$/.test(pin)) {
+      errorEl.textContent = 'El PIN debe tener 6 dígitos.';
       errorEl.classList.remove('hidden');
       return;
     }

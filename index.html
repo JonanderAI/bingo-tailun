@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <title>Bingo Tailun</title>
+  <title>Bingo de Tailún</title>
   <meta name="description" content="El bingo de pruebas del finde. ¡Que empiece la fiesta!" />
 
   <link rel="manifest" href="manifest.json" />
@@ -33,7 +33,10 @@
   <header class="app-header">
     <div class="brand">
       <span class="brand-icon"><i class="fa-solid fa-champagne-glasses"></i></span>
-      <span class="brand-name">Bingo <strong>Tailun</strong></span>
+      <div class="brand-text">
+        <span class="brand-name">Bingo de Tailún</span>
+        <span class="brand-sub">El malvado</span>
+      </div>
     </div>
     <div class="header-right">
       <button id="install-btn" class="icon-btn install-btn hidden" title="Instalar app">
@@ -72,14 +75,14 @@
 
         <!-- ENTRAR (cuenta existente) -->
         <form id="login-form" class="login-pane">
-          <p class="subtitle">Tu nombre y el PIN de 4 dígitos con el que te diste de alta.</p>
+          <p class="subtitle">Tu nombre y el PIN de 6 dígitos con el que te diste de alta.</p>
           <label class="field">
             <span><i class="fa-solid fa-signature"></i> Nombre</span>
             <input type="text" id="login-name" placeholder="Tu nombre" maxlength="30" required autocomplete="off" />
           </label>
           <label class="field">
-            <span><i class="fa-solid fa-key"></i> PIN (4 dígitos)</span>
-            <input type="password" id="login-pin" placeholder="••••" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" />
+            <span><i class="fa-solid fa-key"></i> PIN (6 dígitos)</span>
+            <input type="password" id="login-pin" placeholder="••••••" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" />
           </label>
           <button type="submit" class="btn btn-primary btn-block">
             <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
@@ -89,14 +92,14 @@
 
         <!-- CREAR CUENTA -->
         <form id="registro-form" class="login-pane hidden">
-          <p class="subtitle">Elige un nombre, un PIN de 4 dígitos y tu emoji de avatar.</p>
+          <p class="subtitle">Elige un nombre, un PIN de 6 dígitos y tu emoji de avatar.</p>
           <label class="field">
             <span><i class="fa-solid fa-signature"></i> Nombre</span>
             <input type="text" id="registro-name" placeholder="Tu nombre" maxlength="30" required autocomplete="off" />
           </label>
           <label class="field">
-            <span><i class="fa-solid fa-key"></i> PIN (4 dígitos)</span>
-            <input type="password" id="registro-pin" placeholder="••••" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" />
+            <span><i class="fa-solid fa-key"></i> PIN (6 dígitos)</span>
+            <input type="password" id="registro-pin" placeholder="••••••" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" />
           </label>
           <div class="field">
             <span><i class="fa-solid fa-face-grin-stars"></i> Tu avatar</span>

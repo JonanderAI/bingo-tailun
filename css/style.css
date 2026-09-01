@@ -91,12 +91,12 @@ h1, h2, h3, .brand-name {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--card-border);
+  background: transparent;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-.brand { display: flex; align-items: center; gap: 8px; font-size: 1.2rem; font-weight: 800; }
+.brand { display: flex; align-items: center; gap: 10px; }
 .brand-icon {
   color: #fff;
   background: linear-gradient(135deg, var(--primary), var(--violet));
@@ -105,8 +105,11 @@ h1, h2, h3, .brand-name {
   border-radius: 11px;
   font-size: 1.05rem;
   transform: rotate(-6deg);
+  flex-shrink: 0;
 }
-.brand-name strong { color: var(--primary); }
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-name { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+.brand-sub { font-size: 0.68rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 
 .header-right { display: flex; align-items: center; gap: 10px; }
 
