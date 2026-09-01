@@ -58,8 +58,8 @@ tener Supabase configurado.
 ## Cómo funciona
 
 - **Alta**: "Crear cuenta" pide nombre, PIN de 6 dígitos (único, avisa si
-  ya está en uso) y un avatar emoji. "Entrar" es solo para cuentas ya
-  creadas.
+  ya está en uso) y un avatar emoji. "Entrar" solo pide el PIN: como es
+  único, es tu identificador (no hace falta el nombre para volver a entrar).
 - **Tu aportación**: la pantalla principal es el tablero; debajo tienes tu
   propia tarjeta para enviar hasta 3 pruebas y ver su estado (guardada,
   oculta, activa o cumplida). Solo tú ves el texto de tus propias pruebas

@@ -110,8 +110,8 @@ function cambiarVista(id) {
 
 // ---------- login / registro ----------
 
-async function login(name, pin) {
-  const { data, error } = await supabaseClient.rpc('login_jugador', { p_name: name, p_pin: pin });
+async function login(pin) {
+  const { data, error } = await supabaseClient.rpc('login_jugador', { p_pin: pin });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || !row.ok) throw new Error(row?.error || 'No se ha podido entrar');
@@ -153,7 +153,6 @@ function initLoginForm() {
   const form = $('#login-form');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = $('#login-name').value.trim();
     const pin = $('#login-pin').value.trim();
     const errorEl = $('#login-error');
     errorEl.classList.add('hidden');
@@ -167,7 +166,7 @@ function initLoginForm() {
     const btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
     try {
-      const player = await login(name, pin);
+      const player = await login(pin);
       guardarSesion(player);
       ofrecerInstalacion();
       await arrancarApp(player);

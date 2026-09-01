@@ -98,8 +98,11 @@ grant select on eventos to anon, authenticated;
 
 -- ---------- FUNCIONES RPC ----------
 
--- Iniciar sesión con una cuenta que ya existe (nombre + PIN)
-create or replace function login_jugador(p_name text, p_pin text)
+-- Iniciar sesión con una cuenta que ya existe. El PIN es único, así que
+-- basta con él para identificarse (no hace falta el nombre).
+drop function if exists login_jugador(text, text);
+
+create or replace function login_jugador(p_pin text)
 returns table(id uuid, name text, avatar text, role text, ok boolean, error text)
 language plpgsql
 security definer
@@ -107,19 +110,17 @@ as $$
 declare
   v_existing players%rowtype;
 begin
-  select * into v_existing from players p where lower(p.name) = lower(p_name);
+  select * into v_existing from players p where p.pin = p_pin;
 
   if v_existing.id is null then
-    return query select null::uuid, null::text, null::text, null::text, false, 'No existe ninguna cuenta con ese nombre'::text;
-  elsif v_existing.pin = p_pin then
-    return query select v_existing.id, v_existing.name, v_existing.avatar, v_existing.role, true, null::text;
+    return query select null::uuid, null::text, null::text, null::text, false, 'No existe ninguna cuenta con ese PIN'::text;
   else
-    return query select null::uuid, null::text, null::text, null::text, false, 'PIN incorrecto'::text;
+    return query select v_existing.id, v_existing.name, v_existing.avatar, v_existing.role, true, null::text;
   end if;
 end;
 $$;
 
-grant execute on function login_jugador(text, text) to anon;
+grant execute on function login_jugador(text) to anon;
 
 -- Crear una cuenta nueva (nombre + PIN de 6 dígitos, único + avatar emoji)
 create or replace function registrar_jugador(p_name text, p_pin text, p_avatar text)

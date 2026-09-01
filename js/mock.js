@@ -146,14 +146,10 @@ function crearClienteMock() {
   }
 
   const rpcHandlers = {
-    login_jugador: ({ p_name, p_pin }) => {
-      const nombre = (p_name || '').trim();
-      const existente = players.find(pl => pl.name.toLowerCase() === nombre.toLowerCase());
+    login_jugador: ({ p_pin }) => {
+      const existente = players.find(pl => pl.pin === p_pin);
       if (!existente) {
-        return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'No existe ninguna cuenta con ese nombre' }]);
-      }
-      if (existente.pin !== p_pin) {
-        return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'PIN incorrecto' }]);
+        return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'No existe ninguna cuenta con ese PIN' }]);
       }
       return ok([{ id: existente.id, name: existente.name, avatar: existente.avatar, role: existente.role, ok: true, error: null }]);
     },

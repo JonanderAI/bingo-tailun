@@ -62,7 +62,7 @@
           <i class="fa-solid fa-dice"></i>
         </div>
         <h1>¡Bienvenido/a!</h1>
-        <p id="demo-hint" class="notice hidden"><i class="fa-solid fa-flask"></i> Demo: entra como <strong>Jon (admin)</strong> / PIN <strong>1234</strong>, o crea una cuenta nueva.</p>
+        <p id="demo-hint" class="notice hidden"><i class="fa-solid fa-flask"></i> Demo: entra con el PIN <strong>123456</strong> (admin), o crea una cuenta nueva.</p>
 
         <div class="login-switch">
           <button type="button" class="login-switch-btn active" data-login-tab="entrar">
@@ -73,16 +73,12 @@
           </button>
         </div>
 
-        <!-- ENTRAR (cuenta existente) -->
+        <!-- ENTRAR (cuenta existente): el PIN es único, no hace falta el nombre -->
         <form id="login-form" class="login-pane">
-          <p class="subtitle">Tu nombre y el PIN de 6 dígitos con el que te diste de alta.</p>
-          <label class="field">
-            <span><i class="fa-solid fa-signature"></i> Nombre</span>
-            <input type="text" id="login-name" placeholder="Tu nombre" maxlength="30" required autocomplete="off" />
-          </label>
+          <p class="subtitle">Tu PIN de 6 dígitos es tu identificador único.</p>
           <label class="field">
             <span><i class="fa-solid fa-key"></i> PIN (6 dígitos)</span>
-            <input type="password" id="login-pin" placeholder="••••••" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" />
+            <input type="password" id="login-pin" placeholder="••••••" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" autofocus />
           </label>
           <button type="submit" class="btn btn-primary btn-block">
             <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
