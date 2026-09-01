@@ -4,6 +4,6 @@
 // Supabase > Project Settings > API
 // ============================================================
 window.SUPABASE_CONFIG = {
-  url: 'https://TU-PROYECTO.supabase.co',
+  url: 'https://tzdikewlrfatzakpbbzx.supabase.co',
   anonKey: 'TU-ANON-KEY',
 };
