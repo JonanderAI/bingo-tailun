@@ -20,6 +20,7 @@
   --notice-border: rgba(255, 180, 61, 0.4);
   --notice-text: #a06400;
   --success-text: #0e9c8e;
+  --surface-translucent: rgba(255, 255, 255, 0.95);
 }
 
 /* ---------- Tema noche (a partir de las 21h, modo festivo) ---------- */
@@ -43,6 +44,7 @@ body.tema-noche {
   --notice-border: rgba(255, 179, 71, 0.35);
   --notice-text: #ffcf7a;
   --success-text: #57e6c9;
+  --surface-translucent: rgba(16, 9, 31, 0.9);
 }
 
 * { box-sizing: border-box; }
@@ -305,7 +307,7 @@ textarea { resize: vertical; }
   bottom: 0; left: 0; right: 0;
   z-index: 20;
   display: flex;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--surface-translucent);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--card-border);
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
