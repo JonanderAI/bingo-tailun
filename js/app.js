@@ -4,7 +4,6 @@
 
 const SESSION_KEY = 'bingo_tailun_session';
 const MAX_PRUEBAS_POR_JUGADOR = 3;
-const AVATARES = ['😈', '🔥', '🥂', '🍹', '🎉', '🦄', '🐸', '🦀', '🦭', '🌵', '🍕', '🐙', '🎲', '🕺', '💃', '👑'];
 
 const state = {
   player: null, // { id, name, role, avatar }
@@ -118,8 +117,8 @@ async function login(pin) {
   return { id: row.id, name: row.name, avatar: row.avatar, role: row.role };
 }
 
-async function registrar(name, pin, avatar) {
-  const { data, error } = await supabaseClient.rpc('registrar_jugador', { p_name: name, p_pin: pin, p_avatar: avatar });
+async function registrar(name, pin) {
+  const { data, error } = await supabaseClient.rpc('registrar_jugador', { p_name: name, p_pin: pin });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || !row.ok) throw new Error(row?.error || 'No se ha podido crear la cuenta');
@@ -134,18 +133,6 @@ function initLoginSwitch() {
       $('#login-form').classList.toggle('hidden', modo !== 'entrar');
       $('#registro-form').classList.toggle('hidden', modo !== 'crear');
     });
-  });
-}
-
-function initAvatarPicker() {
-  const cont = $('#avatar-picker');
-  cont.innerHTML = AVATARES.map((a, i) =>
-    `<button type="button" class="avatar-opt${i === 0 ? ' selected' : ''}" data-avatar="${a}">${a}</button>`
-  ).join('');
-  cont.addEventListener('click', (e) => {
-    const btn = e.target.closest('.avatar-opt');
-    if (!btn) return;
-    cont.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
   });
 }
 
@@ -185,7 +172,6 @@ function initRegistroForm() {
     e.preventDefault();
     const name = $('#registro-name').value.trim();
     const pin = $('#registro-pin').value.trim();
-    const avatar = $('#avatar-picker .avatar-opt.selected')?.dataset.avatar || AVATARES[0];
     const errorEl = $('#registro-error');
     errorEl.classList.add('hidden');
 
@@ -198,7 +184,7 @@ function initRegistroForm() {
     const btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
     try {
-      const player = await registrar(name, pin, avatar);
+      const player = await registrar(name, pin);
       guardarSesion(player);
       ofrecerInstalacion();
       await arrancarApp(player);
@@ -671,7 +657,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setInterval(actualizarTemaPorHora, 60_000);
 
   initLoginSwitch();
-  initAvatarPicker();
   initLoginForm();
   initRegistroForm();
   initAdminActions();

@@ -1,7 +1,8 @@
 # Bingo de Tailún 😈
 
-Bingo de pruebas para el finde. Cada uno se da de alta con su nombre, un PIN
-de 6 dígitos y un avatar emoji, y propone hasta 3 pruebas ("su aportación")
+Bingo de pruebas para el finde. Cada uno se da de alta con su nombre y un
+PIN de 6 dígitos (le asignamos un avatar emoji al azar), y propone hasta
+3 pruebas ("su aportación")
 que se puedan cumplir ese finde. Cuando el admin inicia el bingo, las
 pruebas se reparten al azar por un tablero (con un comodín en el centro) y
 quedan ocultas. Solo el admin o el encargado/a asignado a cada prueba puede
@@ -57,9 +58,10 @@ tener Supabase configurado.
 
 ## Cómo funciona
 
-- **Alta**: "Crear cuenta" pide nombre, PIN de 6 dígitos (único, avisa si
-  ya está en uso) y un avatar emoji. "Entrar" solo pide el PIN: como es
-  único, es tu identificador (no hace falta el nombre para volver a entrar).
+- **Alta**: "Crear cuenta" pide nombre y PIN de 6 dígitos (único, avisa si
+  ya está en uso); el avatar se asigna al azar entre 😈🦭🦀🧨🧀🍷🤮💩🗿🦍🇪🇸.
+  "Entrar" solo pide el PIN: como es único, es tu identificador (no hace
+  falta el nombre para volver a entrar).
 - **Tu aportación**: la pantalla principal es el tablero; debajo tienes tu
   propia tarjeta para enviar hasta 3 pruebas y ver su estado (guardada,
   oculta, activa o cumplida). Solo tú ves el texto de tus propias pruebas

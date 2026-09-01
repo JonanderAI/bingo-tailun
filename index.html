@@ -34,7 +34,7 @@
     <div class="brand">
       <span class="brand-icon"><i class="fa-solid fa-champagne-glasses"></i></span>
       <div class="brand-text">
-        <span class="brand-name">Bingo de Tailún</span>
+        <span class="brand-name">Bingo de <strong>Tailún</strong></span>
         <span class="brand-sub">El malvado</span>
       </div>
     </div>
@@ -88,7 +88,7 @@
 
         <!-- CREAR CUENTA -->
         <form id="registro-form" class="login-pane hidden">
-          <p class="subtitle">Elige un nombre, un PIN de 6 dígitos y tu emoji de avatar.</p>
+          <p class="subtitle">Elige un nombre y un PIN de 6 dígitos. Tu avatar te lo asignamos nosotros, al azar 😈</p>
           <label class="field">
             <span><i class="fa-solid fa-signature"></i> Nombre</span>
             <input type="text" id="registro-name" placeholder="Tu nombre" maxlength="30" required autocomplete="off" />
@@ -97,10 +97,6 @@
             <span><i class="fa-solid fa-key"></i> PIN (6 dígitos)</span>
             <input type="password" id="registro-pin" placeholder="••••••" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" />
           </label>
-          <div class="field">
-            <span><i class="fa-solid fa-face-grin-stars"></i> Tu avatar</span>
-            <div id="avatar-picker" class="avatar-picker"></div>
-          </div>
           <button type="submit" class="btn btn-primary btn-block">
             <i class="fa-solid fa-user-plus"></i> Crear cuenta
           </button>

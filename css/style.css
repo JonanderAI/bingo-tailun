@@ -108,7 +108,13 @@ h1, h2, h3, .brand-name {
   flex-shrink: 0;
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
-.brand-name { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+.brand-name { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+.brand-name strong {
+  background: linear-gradient(135deg, var(--primary), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 .brand-sub { font-size: 0.68rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 
 .header-right { display: flex; align-items: center; gap: 10px; }
@@ -220,22 +226,6 @@ h1, h2, h3, .brand-name {
 .login-switch-btn.active { background: var(--card); color: var(--primary); box-shadow: 0 4px 10px rgba(124, 92, 255, 0.15); }
 
 .login-pane.hidden { display: none; }
-
-.avatar-picker {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-}
-.avatar-opt {
-  aspect-ratio: 1 / 1;
-  border-radius: 12px;
-  border: 1.5px solid var(--card-border);
-  background: var(--bg-soft);
-  font-size: 1.3rem;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-}
-.avatar-opt.selected { border-color: var(--primary); background: rgba(255, 93, 122, 0.14); box-shadow: 0 0 0 2px rgba(255, 93, 122, 0.2) inset; }
 
 .field {
   display: flex;

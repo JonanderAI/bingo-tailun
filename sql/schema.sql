@@ -122,14 +122,19 @@ $$;
 
 grant execute on function login_jugador(text) to anon;
 
--- Crear una cuenta nueva (nombre + PIN de 6 dígitos, único + avatar emoji)
-create or replace function registrar_jugador(p_name text, p_pin text, p_avatar text)
+-- Crear una cuenta nueva (nombre + PIN de 6 dígitos, único). El avatar no
+-- se elige: se asigna al azar (y fijo desde entonces) de esta lista.
+drop function if exists registrar_jugador(text, text, text);
+
+create or replace function registrar_jugador(p_name text, p_pin text)
 returns table(id uuid, name text, avatar text, role text, ok boolean, error text)
 language plpgsql
 security definer
 as $$
 declare
   v_new players%rowtype;
+  v_avatares text[] := array['😈', '🦭', '🦀', '🧨', '🧀', '🍷', '🤮', '💩', '🗿', '🦍', '🇪🇸'];
+  v_avatar text;
 begin
   if exists (select 1 from players p where lower(p.name) = lower(p_name)) then
     return query select null::uuid, null::text, null::text, null::text, false, 'Ya existe una cuenta con ese nombre'::text;
@@ -137,13 +142,14 @@ begin
   if exists (select 1 from players p where p.pin = p_pin) then
     return query select null::uuid, null::text, null::text, null::text, false, 'Ese PIN ya está en uso, elige otro'::text;
   end if;
-  insert into players(name, pin, avatar) values (trim(p_name), p_pin, coalesce(p_avatar, '🎉'))
+  v_avatar := v_avatares[1 + floor(random() * array_length(v_avatares, 1))::int];
+  insert into players(name, pin, avatar) values (trim(p_name), p_pin, v_avatar)
   returning * into v_new;
   return query select v_new.id, v_new.name, v_new.avatar, v_new.role, true, null::text;
 end;
 $$;
 
-grant execute on function registrar_jugador(text, text, text) to anon;
+grant execute on function registrar_jugador(text, text) to anon;
 
 -- Crear una prueba (fase de envíos). Hasta 3 por jugador.
 create or replace function crear_prueba(p_player_id uuid, p_texto text)

@@ -10,6 +10,8 @@ function activarModoDemo() {
   return !cfg.url || cfg.url.includes('TU-PROYECTO') || !cfg.anonKey || cfg.anonKey.includes('TU-ANON-KEY');
 }
 
+const AVATARES_ALEATORIOS = ['😈', '🦭', '🦀', '🧨', '🧀', '🍷', '🤮', '💩', '🗿', '🦍', '🇪🇸'];
+
 function crearClienteMock() {
   const uid = (() => { let n = 0; return (p) => `${p}-${++n}`; })();
 
@@ -154,7 +156,7 @@ function crearClienteMock() {
       return ok([{ id: existente.id, name: existente.name, avatar: existente.avatar, role: existente.role, ok: true, error: null }]);
     },
 
-    registrar_jugador: ({ p_name, p_pin, p_avatar }) => {
+    registrar_jugador: ({ p_name, p_pin }) => {
       const nombre = (p_name || '').trim();
       if (players.some(pl => pl.name.toLowerCase() === nombre.toLowerCase())) {
         return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'Ya existe una cuenta con ese nombre' }]);
@@ -162,7 +164,8 @@ function crearClienteMock() {
       if (players.some(pl => pl.pin === p_pin)) {
         return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'Ese PIN ya está en uso, elige otro' }]);
       }
-      const nuevo = { id: uid('player'), name: nombre, role: 'player', pin: p_pin, avatar: p_avatar || '🎉' };
+      const avatar = AVATARES_ALEATORIOS[Math.floor(Math.random() * AVATARES_ALEATORIOS.length)];
+      const nuevo = { id: uid('player'), name: nombre, role: 'player', pin: p_pin, avatar };
       players.push(nuevo);
       return ok([{ id: nuevo.id, name: nuevo.name, avatar: nuevo.avatar, role: nuevo.role, ok: true, error: null }]);
     },
