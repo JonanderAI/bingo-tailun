@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <title>Bingo Tailun</title>
+  <meta name="description" content="El bingo de pruebas del finde. ¡Que empiece la fiesta!" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="emoji-layer" aria-hidden="true"></div>
+  <div id="toast-layer" aria-hidden="true"></div>
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-icon"><i class="fa-solid fa-champagne-glasses"></i></span>
+      <span class="brand-name">Bingo <strong>Tailun</strong></span>
+    </div>
+    <div id="user-chip" class="user-chip hidden">
+      <i class="fa-solid fa-user-ninja"></i>
+      <span id="user-name-label"></span>
+      <span id="user-role-badge" class="role-badge hidden"></span>
+      <button id="logout-btn" class="icon-btn" title="Salir">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+    </div>
+  </header>
+
+  <main id="app-root">
+
+    <!-- LOGIN -->
+    <section id="view-login" class="view">
+      <div class="card login-card">
+        <div class="login-hero">
+          <i class="fa-solid fa-dice"></i>
+        </div>
+        <h1>¡Bienvenido/a!</h1>
+        <p class="subtitle">Identifícate con tu nombre y un PIN de 4 dígitos. Si es la primera vez, se crea tu cuenta automáticamente.</p>
+
+        <form id="login-form">
+          <label class="field">
+            <span><i class="fa-solid fa-signature"></i> Nombre</span>
+            <input type="text" id="login-name" placeholder="Tu nombre" maxlength="30" required autocomplete="off" />
+          </label>
+          <label class="field">
+            <span><i class="fa-solid fa-key"></i> PIN (4 dígitos)</span>
+            <input type="password" id="login-pin" placeholder="••••" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" />
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
+          </button>
+          <p id="login-error" class="error-msg hidden"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- NAV TABS -->
+    <nav id="tabs" class="tabs hidden">
+      <button class="tab-btn" data-view="view-pruebas"><i class="fa-solid fa-pen-fancy"></i><span>Pruebas</span></button>
+      <button class="tab-btn" data-view="view-tablero"><i class="fa-solid fa-table-cells"></i><span>Tablero</span></button>
+      <button class="tab-btn admin-only hidden" data-view="view-admin"><i class="fa-solid fa-crown"></i><span>Admin</span></button>
+    </nav>
+
+    <!-- ENVÍO DE PRUEBAS -->
+    <section id="view-pruebas" class="view">
+      <div class="card">
+        <h2><i class="fa-solid fa-lightbulb"></i> Propón una prueba</h2>
+        <p class="subtitle">Algo que se pueda cumplir este finde. ¡Cuanto más random, mejor!</p>
+        <form id="prueba-form">
+          <label class="field">
+            <textarea id="prueba-texto" rows="3" maxlength="200" placeholder="Ej: Bañarse en el río antes de las 12h..." required></textarea>
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">
+            <i class="fa-solid fa-paper-plane"></i> Enviar prueba
+          </button>
+        </form>
+        <p id="pruebas-fase-aviso" class="notice hidden">
+          <i class="fa-solid fa-lock"></i> El bingo ya ha empezado, no se admiten más pruebas.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3><i class="fa-solid fa-list-check"></i> Pruebas enviadas por todos</h3>
+        <p class="subtitle small">Ocultas hasta que se activen en el tablero.</p>
+        <ul id="lista-pruebas-enviadas" class="simple-list"></ul>
+      </div>
+    </section>
+
+    <!-- TABLERO -->
+    <section id="view-tablero" class="view">
+      <div class="card board-card">
+        <div class="board-header">
+          <h2><i class="fa-solid fa-table-cells-large"></i> Tablero del bingo</h2>
+          <div id="fase-badge" class="fase-badge"></div>
+        </div>
+        <p id="board-empty-msg" class="notice hidden">
+          <i class="fa-solid fa-hourglass-half"></i> El bingo aún no ha empezado. ¡Manda tu prueba y espera al admin!
+        </p>
+        <div id="bingo-grid" class="bingo-grid"></div>
+      </div>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="view-admin" class="view">
+      <div class="card">
+        <h2><i class="fa-solid fa-gamepad"></i> Control del juego</h2>
+        <p class="subtitle">Fase actual: <strong id="admin-fase-label">-</strong></p>
+        <div class="admin-actions">
+          <button id="btn-iniciar-bingo" class="btn btn-accent">
+            <i class="fa-solid fa-play"></i> Iniciar bingo
+          </button>
+          <button id="btn-reiniciar-bingo" class="btn btn-ghost">
+            <i class="fa-solid fa-rotate-left"></i> Reiniciar partida
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><i class="fa-solid fa-user-shield"></i> Asignar encargados</h3>
+        <p class="subtitle small">Cada prueba necesita un encargado/a que la supervise y la habilite cuando pase.</p>
+        <div id="admin-asignaciones" class="assign-list"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: ver prueba oculta / gestionar -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <button id="modal-close" class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/confetti.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
