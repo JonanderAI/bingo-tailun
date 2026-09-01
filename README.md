@@ -56,6 +56,11 @@ tener Supabase configurado.
 3. Guarda. En un minuto tendrás la URL tipo `https://tuusuario.github.io/bingo-tailun/`.
 4. Pasa ese enlace a tus amigos.
 
+**Caché en el móvil**: `index.html` carga `css/style.css` y `js/*.js` con
+`?v=1`. Si cambias esos archivos, sube ese número (`?v=2`, `?v=3`...) o los
+móviles pueden seguir viendo la versión vieja un rato aunque hagan pull-to-
+refresh, por caché del navegador y de la CDN de GitHub Pages.
+
 ## Cómo funciona
 
 - **Alta**: "Crear cuenta" pide nombre y PIN de 6 dígitos (único, avisa si
