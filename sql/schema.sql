@@ -87,9 +87,9 @@ create or replace view pruebas_publicas as
     completada_at,
     revealed_at,
     submitted_by,
-    created_at,
     case when revealed or libre then texto else null end as texto,
-    case when revealed or libre then responsable_id else null end as responsable_id
+    case when revealed or libre then responsable_id else null end as responsable_id,
+    created_at
   from pruebas;
 
 grant select on players_publicos to anon, authenticated;
