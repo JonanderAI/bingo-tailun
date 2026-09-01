@@ -97,6 +97,15 @@ grant select on pruebas_publicas to anon, authenticated;
 grant select on game_state to anon, authenticated;
 grant select on eventos to anon, authenticated;
 
+-- game_state y eventos se consultan directamente (no vía vista), así que
+-- con RLS activado también hace falta una política de lectura o el
+-- SELECT del cliente ve 0 filas (aunque tenga el GRANT).
+drop policy if exists "lectura publica game_state" on game_state;
+create policy "lectura publica game_state" on game_state for select to anon, authenticated using (true);
+
+drop policy if exists "lectura publica eventos" on eventos;
+create policy "lectura publica eventos" on eventos for select to anon, authenticated using (true);
+
 -- ---------- FUNCIONES RPC ----------
 
 -- Iniciar sesión con una cuenta que ya existe. El PIN es único, así que
