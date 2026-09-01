@@ -87,6 +87,7 @@ create or replace view pruebas_publicas as
     completada_at,
     revealed_at,
     submitted_by,
+    created_at,
     case when revealed or libre then texto else null end as texto,
     case when revealed or libre then responsable_id else null end as responsable_id
   from pruebas;
@@ -443,11 +444,33 @@ $$;
 grant execute on function reiniciar_bingo(uuid) to anon;
 
 -- ---------- REALTIME ----------
--- Activa "Realtime" en el dashboard de Supabase para estas tablas/vistas,
--- o ejecuta:
-alter publication supabase_realtime add table pruebas;
-alter publication supabase_realtime add table eventos;
-alter publication supabase_realtime add table game_state;
+-- Añade las tablas a la publicación de Realtime, sin fallar si ya
+-- estaban (para poder volver a pegar y ejecutar este script entero sin
+-- que un "already member of publication" tumbe toda la transacción y
+-- deshaga los cambios de arriba).
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'pruebas'
+  ) then
+    execute 'alter publication supabase_realtime add table pruebas';
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'eventos'
+  ) then
+    execute 'alter publication supabase_realtime add table eventos';
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'game_state'
+  ) then
+    execute 'alter publication supabase_realtime add table game_state';
+  end if;
+end $$;
 
 -- ---------- PRIMER ADMIN ----------
 -- Sustituye 'TuNombre' y '1234' por tu nombre y PIN, y ejecútalo una vez
