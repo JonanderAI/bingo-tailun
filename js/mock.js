@@ -14,12 +14,12 @@ function crearClienteMock() {
   const uid = (() => { let n = 0; return (p) => `${p}-${++n}`; })();
 
   const players = [
-    { id: 'p-admin', name: 'Jon (admin)', role: 'admin', pin: '1234' },
-    { id: 'p-ana', name: 'Ana', role: 'player', pin: '1111' },
-    { id: 'p-marc', name: 'Marc', role: 'player', pin: '2222' },
-    { id: 'p-lucia', name: 'Lucía', role: 'player', pin: '3333' },
-    { id: 'p-pol', name: 'Pol', role: 'player', pin: '4444' },
-    { id: 'p-noa', name: 'Noa', role: 'player', pin: '5555' },
+    { id: 'p-admin', name: 'Jon (admin)', role: 'admin', pin: '1234', avatar: '😈' },
+    { id: 'p-ana', name: 'Ana', role: 'player', pin: '1111', avatar: '🔥' },
+    { id: 'p-marc', name: 'Marc', role: 'player', pin: '2222', avatar: '🦀' },
+    { id: 'p-lucia', name: 'Lucía', role: 'player', pin: '3333', avatar: '🥂' },
+    { id: 'p-pol', name: 'Pol', role: 'player', pin: '4444', avatar: '🦭' },
+    { id: 'p-noa', name: 'Noa', role: 'player', pin: '5555', avatar: '🌵' },
   ];
 
   const textos = [
@@ -148,21 +148,29 @@ function crearClienteMock() {
   const rpcHandlers = {
     login_jugador: ({ p_name, p_pin }) => {
       const nombre = (p_name || '').trim();
-      let existente = players.find(pl => pl.name.toLowerCase() === nombre.toLowerCase());
+      const existente = players.find(pl => pl.name.toLowerCase() === nombre.toLowerCase());
       if (!existente) {
-        existente = { id: uid('player'), name: nombre, role: 'player', pin: p_pin };
-        players.push(existente);
-        return ok([{ id: existente.id, name: existente.name, role: existente.role, ok: true, error: null }]);
+        return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'No existe ninguna cuenta con ese nombre' }]);
       }
       if (existente.pin !== p_pin) {
-        return ok([{ id: null, name: null, role: null, ok: false, error: 'PIN incorrecto' }]);
+        return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'PIN incorrecto' }]);
       }
-      return ok([{ id: existente.id, name: existente.name, role: existente.role, ok: true, error: null }]);
+      return ok([{ id: existente.id, name: existente.name, avatar: existente.avatar, role: existente.role, ok: true, error: null }]);
+    },
+
+    registrar_jugador: ({ p_name, p_pin, p_avatar }) => {
+      const nombre = (p_name || '').trim();
+      if (players.some(pl => pl.name.toLowerCase() === nombre.toLowerCase())) {
+        return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'Ya existe una cuenta con ese nombre' }]);
+      }
+      const nuevo = { id: uid('player'), name: nombre, role: 'player', pin: p_pin, avatar: p_avatar || '🎉' };
+      players.push(nuevo);
+      return ok([{ id: nuevo.id, name: nuevo.name, avatar: nuevo.avatar, role: nuevo.role, ok: true, error: null }]);
     },
 
     crear_prueba: ({ p_player_id, p_texto }) => {
       if (gameState.fase !== 'submission') return fail('Ya no se pueden enviar pruebas, el bingo ha empezado');
-      if (pruebas.some(p => p.submitted_by === p_player_id)) return fail('Ya has enviado tu aportación');
+      if (pruebas.filter(p => p.submitted_by === p_player_id).length >= 3) return fail('Máximo 3 pruebas por jugador');
       pruebas.push({
         id: uid('prueba'), texto: (p_texto || '').trim(), submitted_by: p_player_id, responsable_id: null,
         position: null, libre: false, revealed: false, completada: false, completada_por: null,
@@ -301,7 +309,7 @@ function crearClienteMock() {
         _rows() {
           if (table === 'game_state') return [gameState];
           if (table === 'pruebas_publicas') return pruebasPublicas();
-          if (table === 'players_publicos') return players.map(p => ({ id: p.id, name: p.name, role: p.role }));
+          if (table === 'players_publicos') return players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar, role: p.role }));
           if (table === 'eventos') return eventos;
           return [];
         },

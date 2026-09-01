@@ -11,9 +11,14 @@ create table if not exists players (
   id uuid primary key default gen_random_uuid(),
   name text unique not null,
   pin text not null check (pin ~ '^[0-9]{4}$'),
+  avatar text not null default '🎉',
   role text not null default 'player' check (role in ('admin', 'player')),
   created_at timestamptz not null default now()
 );
+
+-- Si ya tenías la tabla creada de antes, ejecuta esto una vez para
+-- añadir la columna sin perder los jugadores existentes:
+-- alter table players add column if not exists avatar text not null default '🎉';
 
 create table if not exists pruebas (
   id uuid primary key default gen_random_uuid(),
@@ -66,7 +71,7 @@ revoke all on eventos from anon, authenticated;
 -- Lecturas públicas seguras vía vistas (sin pin, sin texto oculto):
 
 create or replace view players_publicos as
-  select id, name, role, created_at from players;
+  select id, name, avatar, role, created_at from players;
 
 create or replace view pruebas_publicas as
   select
@@ -90,9 +95,9 @@ grant select on eventos to anon, authenticated;
 
 -- ---------- FUNCIONES RPC ----------
 
--- Registrar nuevo jugador o iniciar sesión si ya existe
+-- Iniciar sesión con una cuenta que ya existe (nombre + PIN)
 create or replace function login_jugador(p_name text, p_pin text)
-returns table(id uuid, name text, role text, ok boolean, error text)
+returns table(id uuid, name text, avatar text, role text, ok boolean, error text)
 language plpgsql
 security definer
 as $$
@@ -102,22 +107,38 @@ begin
   select * into v_existing from players p where lower(p.name) = lower(p_name);
 
   if v_existing.id is null then
-    insert into players(name, pin) values (trim(p_name), p_pin)
-    returning * into v_existing;
-    return query select v_existing.id, v_existing.name, v_existing.role, true, null::text;
+    return query select null::uuid, null::text, null::text, null::text, false, 'No existe ninguna cuenta con ese nombre'::text;
+  elsif v_existing.pin = p_pin then
+    return query select v_existing.id, v_existing.name, v_existing.avatar, v_existing.role, true, null::text;
   else
-    if v_existing.pin = p_pin then
-      return query select v_existing.id, v_existing.name, v_existing.role, true, null::text;
-    else
-      return query select null::uuid, null::text, null::text, false, 'PIN incorrecto'::text;
-    end if;
+    return query select null::uuid, null::text, null::text, null::text, false, 'PIN incorrecto'::text;
   end if;
 end;
 $$;
 
 grant execute on function login_jugador(text, text) to anon;
 
--- Crear una prueba (fase de envíos). Una por jugador: es "su aportación".
+-- Crear una cuenta nueva (nombre + PIN de 4 dígitos + avatar emoji)
+create or replace function registrar_jugador(p_name text, p_pin text, p_avatar text)
+returns table(id uuid, name text, avatar text, role text, ok boolean, error text)
+language plpgsql
+security definer
+as $$
+declare
+  v_new players%rowtype;
+begin
+  if exists (select 1 from players p where lower(p.name) = lower(p_name)) then
+    return query select null::uuid, null::text, null::text, null::text, false, 'Ya existe una cuenta con ese nombre'::text;
+  end if;
+  insert into players(name, pin, avatar) values (trim(p_name), p_pin, coalesce(p_avatar, '🎉'))
+  returning * into v_new;
+  return query select v_new.id, v_new.name, v_new.avatar, v_new.role, true, null::text;
+end;
+$$;
+
+grant execute on function registrar_jugador(text, text, text) to anon;
+
+-- Crear una prueba (fase de envíos). Hasta 3 por jugador.
 create or replace function crear_prueba(p_player_id uuid, p_texto text)
 returns uuid
 language plpgsql
@@ -126,13 +147,15 @@ as $$
 declare
   v_id uuid;
   v_fase text;
+  v_count int;
 begin
   select fase into v_fase from game_state where id = 1;
   if v_fase <> 'submission' then
     raise exception 'Ya no se pueden enviar pruebas, el bingo ha empezado';
   end if;
-  if exists (select 1 from pruebas where submitted_by = p_player_id) then
-    raise exception 'Ya has enviado tu aportación';
+  select count(*) into v_count from pruebas where submitted_by = p_player_id;
+  if v_count >= 3 then
+    raise exception 'Máximo 3 pruebas por jugador';
   end if;
   insert into pruebas(texto, submitted_by) values (trim(p_texto), p_player_id)
   returning id into v_id;

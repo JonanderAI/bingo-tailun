@@ -35,13 +35,18 @@
       <span class="brand-icon"><i class="fa-solid fa-champagne-glasses"></i></span>
       <span class="brand-name">Bingo <strong>Tailun</strong></span>
     </div>
-    <div id="user-chip" class="user-chip hidden">
-      <i class="fa-solid fa-user-ninja"></i>
-      <span id="user-name-label"></span>
-      <span id="user-role-badge" class="role-badge hidden"></span>
-      <button id="logout-btn" class="icon-btn" title="Salir">
-        <i class="fa-solid fa-right-from-bracket"></i>
+    <div class="header-right">
+      <button id="install-btn" class="icon-btn install-btn hidden" title="Instalar app">
+        <i class="fa-solid fa-arrow-down-to-bracket"></i>
       </button>
+      <div id="user-chip" class="user-chip hidden">
+        <span id="user-avatar-label" class="user-avatar"></span>
+        <span id="user-name-label"></span>
+        <span id="user-role-badge" class="role-badge hidden"></span>
+        <button id="logout-btn" class="icon-btn" title="Salir">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -54,10 +59,20 @@
           <i class="fa-solid fa-dice"></i>
         </div>
         <h1>¡Bienvenido/a!</h1>
-        <p class="subtitle">Identifícate con tu nombre y un PIN de 4 dígitos. Si es la primera vez, se crea tu cuenta automáticamente.</p>
-        <p id="demo-hint" class="notice hidden"><i class="fa-solid fa-flask"></i> Demo: entra como <strong>Jon (admin)</strong> / PIN <strong>1234</strong>, o inventa un nombre y PIN nuevos.</p>
+        <p id="demo-hint" class="notice hidden"><i class="fa-solid fa-flask"></i> Demo: entra como <strong>Jon (admin)</strong> / PIN <strong>1234</strong>, o crea una cuenta nueva.</p>
 
-        <form id="login-form">
+        <div class="login-switch">
+          <button type="button" class="login-switch-btn active" data-login-tab="entrar">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
+          </button>
+          <button type="button" class="login-switch-btn" data-login-tab="crear">
+            <i class="fa-solid fa-user-plus"></i> Crear cuenta
+          </button>
+        </div>
+
+        <!-- ENTRAR (cuenta existente) -->
+        <form id="login-form" class="login-pane">
+          <p class="subtitle">Tu nombre y el PIN de 4 dígitos con el que te diste de alta.</p>
           <label class="field">
             <span><i class="fa-solid fa-signature"></i> Nombre</span>
             <input type="text" id="login-name" placeholder="Tu nombre" maxlength="30" required autocomplete="off" />
@@ -70,6 +85,27 @@
             <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
           </button>
           <p id="login-error" class="error-msg hidden"></p>
+        </form>
+
+        <!-- CREAR CUENTA -->
+        <form id="registro-form" class="login-pane hidden">
+          <p class="subtitle">Elige un nombre, un PIN de 4 dígitos y tu emoji de avatar.</p>
+          <label class="field">
+            <span><i class="fa-solid fa-signature"></i> Nombre</span>
+            <input type="text" id="registro-name" placeholder="Tu nombre" maxlength="30" required autocomplete="off" />
+          </label>
+          <label class="field">
+            <span><i class="fa-solid fa-key"></i> PIN (4 dígitos)</span>
+            <input type="password" id="registro-pin" placeholder="••••" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" />
+          </label>
+          <div class="field">
+            <span><i class="fa-solid fa-face-grin-stars"></i> Tu avatar</span>
+            <div id="avatar-picker" class="avatar-picker"></div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">
+            <i class="fa-solid fa-user-plus"></i> Crear cuenta
+          </button>
+          <p id="registro-error" class="error-msg hidden"></p>
         </form>
       </div>
     </section>

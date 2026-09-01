@@ -3,16 +3,73 @@
 // ============================================================
 
 const SESSION_KEY = 'bingo_tailun_session';
+const MAX_PRUEBAS_POR_JUGADOR = 3;
+const AVATARES = ['😈', '🔥', '🥂', '🍹', '🎉', '🦄', '🐸', '🦀', '🦭', '🌵', '🍕', '🐙', '🎲', '🕺', '💃', '👑'];
 
 const state = {
-  player: null, // { id, name, role }
+  player: null, // { id, name, role, avatar }
   fase: 'submission',
   boardSize: 25,
   pruebas: [], // pruebas_publicas
   players: [], // players_publicos
   misResponsabilidades: [], // ids de pruebas que puedo desvelar
-  miPrueba: null, // mi propia aportación (texto siempre visible para mí)
+  misPruebas: [], // mis propias aportaciones (texto siempre visible para mí, hasta 3)
 };
+
+// ---------- instalar como app (PWA) ----------
+
+let promptInstalacionDiferido = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  promptInstalacionDiferido = e;
+  actualizarBotonInstalar();
+});
+window.addEventListener('appinstalled', () => {
+  promptInstalacionDiferido = null;
+  actualizarBotonInstalar();
+});
+
+function esIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function appYaInstalada() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function actualizarBotonInstalar() {
+  const btn = $('#install-btn');
+  if (!btn) return;
+  const mostrar = !appYaInstalada() && (promptInstalacionDiferido || esIOS());
+  btn.classList.toggle('hidden', !mostrar);
+}
+
+async function ofrecerInstalacion() {
+  if (!promptInstalacionDiferido) return;
+  promptInstalacionDiferido.prompt();
+  await promptInstalacionDiferido.userChoice.catch(() => {});
+  promptInstalacionDiferido = null;
+  actualizarBotonInstalar();
+}
+
+function initInstalarBoton() {
+  actualizarBotonInstalar();
+  $('#install-btn').addEventListener('click', async () => {
+    if (promptInstalacionDiferido) {
+      await ofrecerInstalacion();
+      return;
+    }
+    if (esIOS()) {
+      abrirModal(`
+        <h3><i class="fa-solid fa-mobile-screen-button"></i> Instalar en iPhone / iPad</h3>
+        <p class="modal-texto">
+          Toca el botón <i class="fa-solid fa-arrow-up-from-bracket"></i> <strong>Compartir</strong> de Safari
+          y elige <strong>"Añadir a pantalla de inicio"</strong>.
+        </p>
+      `);
+    }
+  });
+}
 
 // ---------- tema día / noche ----------
 
@@ -51,14 +108,45 @@ function cambiarVista(id) {
   $all('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === id));
 }
 
-// ---------- login ----------
+// ---------- login / registro ----------
 
 async function login(name, pin) {
   const { data, error } = await supabaseClient.rpc('login_jugador', { p_name: name, p_pin: pin });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || !row.ok) throw new Error(row?.error || 'No se ha podido entrar');
-  return { id: row.id, name: row.name, role: row.role };
+  return { id: row.id, name: row.name, avatar: row.avatar, role: row.role };
+}
+
+async function registrar(name, pin, avatar) {
+  const { data, error } = await supabaseClient.rpc('registrar_jugador', { p_name: name, p_pin: pin, p_avatar: avatar });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || !row.ok) throw new Error(row?.error || 'No se ha podido crear la cuenta');
+  return { id: row.id, name: row.name, avatar: row.avatar, role: row.role };
+}
+
+function initLoginSwitch() {
+  $all('.login-switch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $all('.login-switch-btn').forEach(b => b.classList.toggle('active', b === btn));
+      const modo = btn.dataset.loginTab;
+      $('#login-form').classList.toggle('hidden', modo !== 'entrar');
+      $('#registro-form').classList.toggle('hidden', modo !== 'crear');
+    });
+  });
+}
+
+function initAvatarPicker() {
+  const cont = $('#avatar-picker');
+  cont.innerHTML = AVATARES.map((a, i) =>
+    `<button type="button" class="avatar-opt${i === 0 ? ' selected' : ''}" data-avatar="${a}">${a}</button>`
+  ).join('');
+  cont.addEventListener('click', (e) => {
+    const btn = e.target.closest('.avatar-opt');
+    if (!btn) return;
+    cont.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
+  });
 }
 
 function initLoginForm() {
@@ -81,9 +169,42 @@ function initLoginForm() {
     try {
       const player = await login(name, pin);
       guardarSesion(player);
+      ofrecerInstalacion();
       await arrancarApp(player);
     } catch (err) {
       errorEl.textContent = err.message || 'Error al iniciar sesión';
+      errorEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+function initRegistroForm() {
+  const form = $('#registro-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('#registro-name').value.trim();
+    const pin = $('#registro-pin').value.trim();
+    const avatar = $('#avatar-picker .avatar-opt.selected')?.dataset.avatar || AVATARES[0];
+    const errorEl = $('#registro-error');
+    errorEl.classList.add('hidden');
+
+    if (!/^[0-9]{4}$/.test(pin)) {
+      errorEl.textContent = 'El PIN debe tener 4 dígitos.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    try {
+      const player = await registrar(name, pin, avatar);
+      guardarSesion(player);
+      ofrecerInstalacion();
+      await arrancarApp(player);
+    } catch (err) {
+      errorEl.textContent = err.message || 'Error al crear la cuenta';
       errorEl.classList.remove('hidden');
     } finally {
       btn.disabled = false;
@@ -127,14 +248,24 @@ async function cargarMisResponsabilidades() {
   state.misResponsabilidades = data || [];
 }
 
-async function cargarMiPrueba() {
+async function cargarMisPruebas() {
   if (!state.player) return;
   const { data, error } = await supabaseClient.rpc('mi_prueba', { p_player_id: state.player.id });
   if (error) { console.error(error); return; }
-  state.miPrueba = (data && data[0]) || null;
+  state.misPruebas = data || [];
 }
 
 // ---------- render: header / tabs ----------
+
+function avatarDe(playerId) {
+  const p = state.players.find(pl => pl.id === playerId);
+  return p ? p.avatar : '❓';
+}
+
+function nombreConAvatar(playerId) {
+  const p = state.players.find(pl => pl.id === playerId);
+  return p ? `${p.avatar} ${p.name}` : '?';
+}
 
 function renderHeader() {
   const chip = $('#user-chip');
@@ -148,6 +279,7 @@ function renderHeader() {
   // Los jugadores normales solo tienen una pantalla (el tablero), así
   // que no necesitan pestañas. El admin sí, para acceder a su panel.
   tabs.classList.toggle('hidden', state.player.role !== 'admin');
+  $('#user-avatar-label').textContent = state.player.avatar || '🎉';
   $('#user-name-label').textContent = state.player.name;
   const badge = $('#user-role-badge');
   if (state.player.role === 'admin') {
@@ -161,58 +293,52 @@ function renderHeader() {
 
 // ---------- render: tu aportación ----------
 
+function estadoAportacion(p) {
+  if (p.completada) {
+    const cumplidor = state.players.find(pl => pl.id === p.completada_por);
+    return `<i class="fa-solid fa-champagne-glasses"></i> Cumplida por <strong>${cumplidor ? cumplidor.name : '?'}</strong>`;
+  }
+  if (state.fase === 'submission') return `<i class="fa-solid fa-hourglass-half"></i> Guardada, esperando a que empiece el bingo`;
+  if (p.revealed) return `<i class="fa-solid fa-fire"></i> ¡Activa en el tablero!`;
+  return `<i class="fa-solid fa-lock"></i> Sigue oculta`;
+}
+
 function renderMiAportacion() {
   const cont = $('#card-mi-aportacion');
-  const mia = state.miPrueba;
+  const mias = state.misPruebas;
+  const puedeAnadirMas = state.fase === 'submission' && mias.length < MAX_PRUEBAS_POR_JUGADOR;
 
-  if (state.fase === 'submission') {
-    if (mia) {
-      cont.innerHTML = `
-        <h3><i class="fa-solid fa-circle-check"></i> Tu aportación</h3>
-        <p class="modal-texto">${escapeHtml(mia.texto)}</p>
-        <p class="subtitle small"><i class="fa-solid fa-hourglass-half"></i> Guardada. Se repartirá por el tablero cuando el admin inicie el bingo.</p>
-      `;
-    } else {
-      cont.innerHTML = `
-        <h3><i class="fa-solid fa-lightbulb"></i> Tu aportación al bingo</h3>
-        <p class="subtitle small">Algo que se pueda cumplir este finde. ¡Cuanto más random, mejor!</p>
-        <form id="prueba-form">
-          <label class="field">
-            <textarea id="prueba-texto" rows="3" maxlength="200" placeholder="Ej: Bañarse en el río antes de las 12h..." required></textarea>
-          </label>
-          <button type="submit" class="btn btn-primary btn-block">
-            <i class="fa-solid fa-paper-plane"></i> Enviar
-          </button>
-        </form>
-      `;
-      $('#prueba-form').addEventListener('submit', enviarPrueba);
-    }
-    return;
+  let listaHtml = '';
+  if (mias.length > 0) {
+    listaHtml = `<ul class="simple-list">${mias.map(p => `
+      <li><i class="fa-solid fa-scroll"></i> ${escapeHtml(p.texto)} &middot; ${estadoAportacion(p)}</li>
+    `).join('')}</ul>`;
+  } else if (state.fase !== 'submission') {
+    listaHtml = `<p class="subtitle small">No enviaste ninguna prueba esta vez. ¡A disfrutar del bingo de los demás! 🍻</p>`;
   }
 
-  if (!mia) {
-    cont.innerHTML = `
-      <h3><i class="fa-solid fa-ghost"></i> Tu aportación</h3>
-      <p class="subtitle small">No enviaste ninguna prueba esta vez. ¡A disfrutar del bingo de los demás! 🍻</p>
+  let formHtml = '';
+  if (puedeAnadirMas) {
+    formHtml = `
+      <form id="prueba-form">
+        <label class="field">
+          <textarea id="prueba-texto" rows="3" maxlength="200" placeholder="Ej: Bañarse en el río antes de las 12h..." required></textarea>
+        </label>
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fa-solid fa-paper-plane"></i> Enviar (${mias.length}/${MAX_PRUEBAS_POR_JUGADOR})
+        </button>
+      </form>
     `;
-    return;
-  }
-
-  let estadoHtml;
-  if (mia.completada) {
-    const cumplidor = state.players.find(pl => pl.id === mia.completada_por);
-    estadoHtml = `<p class="modal-meta"><i class="fa-solid fa-champagne-glasses"></i> Cumplida por <strong>${cumplidor ? cumplidor.name : '?'}</strong></p>`;
-  } else if (mia.revealed) {
-    estadoHtml = `<p class="modal-meta"><i class="fa-solid fa-fire"></i> ¡Ya está activa en el tablero!</p>`;
-  } else {
-    estadoHtml = `<p class="modal-meta"><i class="fa-solid fa-lock"></i> Sigue oculta, se activará cuando llegue su momento.</p>`;
   }
 
   cont.innerHTML = `
-    <h3><i class="fa-solid fa-star"></i> Tu aportación</h3>
-    <p class="modal-texto">${escapeHtml(mia.texto)}</p>
-    ${estadoHtml}
+    <h3><i class="fa-solid fa-lightbulb"></i> Tu aportación</h3>
+    <p class="subtitle small">Hasta ${MAX_PRUEBAS_POR_JUGADOR} pruebas por jugador. ¡Cuanto más random, mejor!</p>
+    ${listaHtml}
+    ${formHtml}
   `;
+
+  if (puedeAnadirMas) $('#prueba-form').addEventListener('submit', enviarPrueba);
 }
 
 async function enviarPrueba(e) {
@@ -224,7 +350,7 @@ async function enviarPrueba(e) {
   try {
     const { error } = await supabaseClient.rpc('crear_prueba', { p_player_id: state.player.id, p_texto: texto });
     if (error) throw error;
-    await cargarMiPrueba();
+    await cargarMisPruebas();
     renderMiAportacion();
     mostrarToast('¡Prueba enviada! 🎉');
   } catch (err) {
@@ -275,8 +401,7 @@ function renderTablero() {
       cell.innerHTML = `<i class="fa-solid fa-gift cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || 'Comodín')}</span>`;
     } else if (prueba.completada) {
       cell.classList.add('completed-cell');
-      const cumplidor = state.players.find(pl => pl.id === prueba.completada_por);
-      cell.innerHTML = `<i class="fa-solid fa-champagne-glasses cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${cumplidor ? cumplidor.name : ''}</span>`;
+      cell.innerHTML = `<i class="fa-solid fa-champagne-glasses cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>`;
     } else if (prueba.revealed) {
       cell.classList.add('revealed-cell');
       cell.innerHTML = `<i class="fa-solid fa-fire cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span>`;
@@ -322,23 +447,20 @@ async function abrirCelda(prueba, ev) {
   }
 
   if (prueba.completada) {
-    const cumplidor = state.players.find(pl => pl.id === prueba.completada_por);
-    const responsable = state.players.find(pl => pl.id === prueba.responsable_id);
     abrirModal(`
       <h3><i class="fa-solid fa-champagne-glasses"></i> Prueba cumplida</h3>
       <p class="modal-texto">${escapeHtml(prueba.texto)}</p>
-      <p class="modal-meta"><i class="fa-solid fa-user-check"></i> Cumplida por <strong>${cumplidor ? cumplidor.name : '?'}</strong></p>
-      <p class="modal-meta"><i class="fa-solid fa-user-shield"></i> Encargado/a: <strong>${responsable ? responsable.name : '?'}</strong></p>
+      <p class="modal-meta"><i class="fa-solid fa-user-check"></i> Cumplida por <strong>${escapeHtml(nombreConAvatar(prueba.completada_por))}</strong></p>
+      <p class="modal-meta"><i class="fa-solid fa-user-shield"></i> Encargado/a: <strong>${escapeHtml(nombreConAvatar(prueba.responsable_id))}</strong></p>
     `);
     return;
   }
 
   if (prueba.revealed) {
     const autorizado = state.player.role === 'admin' || prueba.responsable_id === state.player.id;
-    const responsable = state.players.find(pl => pl.id === prueba.responsable_id);
     let acciones = '';
     if (autorizado) {
-      const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+      const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
       acciones = `
         <div class="modal-actions">
           <label class="field"><span><i class="fa-solid fa-user-check"></i> ¿Quién ha cumplido la prueba?</span>
@@ -353,7 +475,7 @@ async function abrirCelda(prueba, ev) {
     abrirModal(`
       <h3><i class="fa-solid fa-fire"></i> Prueba activa</h3>
       <p class="modal-texto">${escapeHtml(prueba.texto)}</p>
-      <p class="modal-meta"><i class="fa-solid fa-user-shield"></i> Encargado/a: <strong>${responsable ? responsable.name : '?'}</strong></p>
+      <p class="modal-meta"><i class="fa-solid fa-user-shield"></i> Encargado/a: <strong>${escapeHtml(nombreConAvatar(prueba.responsable_id))}</strong></p>
       ${acciones}
     `);
     if (autorizado) {
@@ -441,7 +563,7 @@ async function renderAsignaciones() {
   cont.innerHTML = '';
   pruebas.forEach(p => {
     const opciones = ['<option value="">Sin asignar</option>']
-      .concat(state.players.map(pl => `<option value="${pl.id}" ${pl.id === p.responsable_id ? 'selected' : ''}>${escapeHtml(pl.name)}</option>`))
+      .concat(state.players.map(pl => `<option value="${pl.id}" ${pl.id === p.responsable_id ? 'selected' : ''}>${escapeHtml(pl.avatar)} ${escapeHtml(pl.name)}</option>`))
       .join('');
     const div = document.createElement('div');
     div.className = 'assign-item';
@@ -487,7 +609,7 @@ function initRealtime() {
   supabaseClient
     .channel('bingo-tailun')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pruebas' }, async () => {
-      await Promise.all([cargarPruebas(), cargarMiPrueba(), cargarMisResponsabilidades()]);
+      await Promise.all([cargarPruebas(), cargarMisPruebas(), cargarMisResponsabilidades()]);
       renderTablero();
       renderMiAportacion();
       if (state.player?.role === 'admin') await renderAsignaciones();
@@ -533,7 +655,7 @@ async function arrancarApp(player) {
     cargarPruebas(),
     cargarPlayers(),
     cargarMisResponsabilidades(),
-    cargarMiPrueba(),
+    cargarMisPruebas(),
   ]);
 
   renderTablero();
@@ -549,10 +671,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   actualizarTemaPorHora();
   setInterval(actualizarTemaPorHora, 60_000);
 
+  initLoginSwitch();
+  initAvatarPicker();
   initLoginForm();
+  initRegistroForm();
   initAdminActions();
   initTabs();
   initModal();
+  initInstalarBoton();
   $('#logout-btn').addEventListener('click', logout);
 
   const sesion = leerSesion();

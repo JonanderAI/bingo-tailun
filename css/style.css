@@ -108,6 +108,18 @@ h1, h2, h3, .brand-name {
 }
 .brand-name strong { color: var(--primary); }
 
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+.install-btn {
+  font-size: 1.15rem;
+  background: var(--bg-soft);
+  border: 1px solid var(--card-border);
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--violet);
+}
+
 .user-chip {
   display: flex;
   align-items: center;
@@ -119,7 +131,7 @@ h1, h2, h3, .brand-name {
   font-weight: 700;
   font-size: 0.9rem;
 }
-.user-chip i.fa-user-ninja { color: var(--violet); }
+.user-avatar { font-size: 1.15rem; line-height: 1; }
 
 .role-badge {
   background: linear-gradient(135deg, var(--accent), #ffcf7a);
@@ -180,6 +192,47 @@ h1, h2, h3, .brand-name {
   box-shadow: 0 10px 22px rgba(255, 93, 122, 0.35);
   transform: rotate(-6deg);
 }
+
+.login-switch {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-soft);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 4px;
+  margin: 16px 0;
+}
+.login-switch-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px 8px;
+  border-radius: 11px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+}
+.login-switch-btn.active { background: var(--card); color: var(--primary); box-shadow: 0 4px 10px rgba(124, 92, 255, 0.15); }
+
+.login-pane.hidden { display: none; }
+
+.avatar-picker {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.avatar-opt {
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  border: 1.5px solid var(--card-border);
+  background: var(--bg-soft);
+  font-size: 1.3rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.avatar-opt.selected { border-color: var(--primary); background: rgba(255, 93, 122, 0.14); box-shadow: 0 0 0 2px rgba(255, 93, 122, 0.2) inset; }
 
 .field {
   display: flex;
