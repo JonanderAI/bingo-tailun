@@ -5,6 +5,9 @@ las pruebas por el tablero y las va habilitando a medida que van pasando.
 Cuando se cumple una prueba beben el cumplidor y el encargado/a; cuando se
 hace línea o bingo, bebéis todos.
 
+Es una PWA instalable: desde el móvil (Chrome/Safari) → "Añadir a pantalla
+de inicio" → se instala como app **Tailún el malvado** con icono 😈.
+
 ## 1. Crear el proyecto en Supabase
 
 1. Ve a [supabase.com](https://supabase.com) y crea un proyecto nuevo (gratis).
