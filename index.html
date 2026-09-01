@@ -17,6 +17,10 @@
   <div id="emoji-layer" aria-hidden="true"></div>
   <div id="toast-layer" aria-hidden="true"></div>
 
+  <div id="demo-banner" class="demo-banner hidden">
+    <i class="fa-solid fa-flask"></i> Modo demo &middot; datos de prueba, sin base de datos conectada
+  </div>
+
   <header class="app-header">
     <div class="brand">
       <span class="brand-icon"><i class="fa-solid fa-champagne-glasses"></i></span>
@@ -42,6 +46,7 @@
         </div>
         <h1>¡Bienvenido/a!</h1>
         <p class="subtitle">Identifícate con tu nombre y un PIN de 4 dígitos. Si es la primera vez, se crea tu cuenta automáticamente.</p>
+        <p id="demo-hint" class="notice hidden"><i class="fa-solid fa-flask"></i> Demo: entra como <strong>Jon (admin)</strong> / PIN <strong>1234</strong>, o inventa un nombre y PIN nuevos.</p>
 
         <form id="login-form">
           <label class="field">
@@ -140,6 +145,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/mock.js"></script>
   <script src="js/supabaseClient.js"></script>
   <script src="js/confetti.js"></script>
   <script src="js/app.js"></script>
