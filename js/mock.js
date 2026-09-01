@@ -55,28 +55,39 @@ function crearClienteMock() {
   const gameState = { id: 1, fase: 'playing', board_size: 25, updated_at: new Date().toISOString() };
   const eventos = [];
 
+  // Calcula el lado del tablero más pequeño que cabe con todas las
+  // pruebas + 1 comodín central, igual que hace iniciar_bingo() en SQL.
   function repartirTablero() {
-    const size = gameState.board_size;
     const sinAsignar = pruebas.filter(p => p.position === null && !p.libre);
+    const count = sinAsignar.length;
+    const side = Math.max(3, Math.ceil(Math.sqrt(count + 1)));
+    const size = side * side;
+    const centro = Math.floor(size / 2);
+
+    pruebas.push({
+      id: uid('comodin'),
+      texto: 'Comodín',
+      submitted_by: null,
+      responsable_id: null,
+      position: centro,
+      libre: true,
+      revealed: true,
+      completada: true,
+      completada_por: null,
+      created_at: new Date().toISOString(),
+      revealed_at: new Date().toISOString(),
+      completada_at: new Date().toISOString(),
+    });
+
     const shuffled = [...sinAsignar].sort(() => Math.random() - 0.5);
-    shuffled.forEach((p, i) => { if (i < size) p.position = i; });
-    const usados = pruebas.filter(p => p.position !== null).length;
-    for (let i = usados; i < size; i++) {
-      pruebas.push({
-        id: uid('libre'),
-        texto: 'Casilla libre',
-        submitted_by: null,
-        responsable_id: null,
-        position: i,
-        libre: true,
-        revealed: true,
-        completada: true,
-        completada_por: null,
-        created_at: new Date().toISOString(),
-        revealed_at: new Date().toISOString(),
-        completada_at: new Date().toISOString(),
-      });
-    }
+    let pos = 0;
+    shuffled.forEach((p) => {
+      if (pos === centro) pos++;
+      p.position = pos;
+      pos++;
+    });
+
+    gameState.board_size = size;
   }
 
   // Estado inicial "de escaparate": tablero ya repartido con algunas
@@ -151,6 +162,7 @@ function crearClienteMock() {
 
     crear_prueba: ({ p_player_id, p_texto }) => {
       if (gameState.fase !== 'submission') return fail('Ya no se pueden enviar pruebas, el bingo ha empezado');
+      if (pruebas.some(p => p.submitted_by === p_player_id)) return fail('Ya has enviado tu aportación');
       pruebas.push({
         id: uid('prueba'), texto: (p_texto || '').trim(), submitted_by: p_player_id, responsable_id: null,
         position: null, libre: false, revealed: false, completada: false, completada_por: null,
@@ -158,6 +170,10 @@ function crearClienteMock() {
       });
       emit('pruebas', {});
       return ok(null);
+    },
+
+    mi_prueba: ({ p_player_id }) => {
+      return ok(pruebas.filter(p => p.submitted_by === p_player_id).map(p => ({ ...p })));
     },
 
     ver_prueba_oculta: ({ p_prueba_id, p_player_id }) => {

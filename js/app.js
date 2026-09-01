@@ -11,7 +11,16 @@ const state = {
   pruebas: [], // pruebas_publicas
   players: [], // players_publicos
   misResponsabilidades: [], // ids de pruebas que puedo desvelar
+  miPrueba: null, // mi propia aportación (texto siempre visible para mí)
 };
+
+// ---------- tema día / noche ----------
+
+function actualizarTemaPorHora() {
+  const hora = new Date().getHours();
+  const esNoche = hora >= 21 || hora < 7;
+  document.body.classList.toggle('tema-noche', esNoche);
+}
 
 // ---------- utilidades ----------
 
@@ -118,6 +127,13 @@ async function cargarMisResponsabilidades() {
   state.misResponsabilidades = data || [];
 }
 
+async function cargarMiPrueba() {
+  if (!state.player) return;
+  const { data, error } = await supabaseClient.rpc('mi_prueba', { p_player_id: state.player.id });
+  if (error) { console.error(error); return; }
+  state.miPrueba = (data && data[0]) || null;
+}
+
 // ---------- render: header / tabs ----------
 
 function renderHeader() {
@@ -129,7 +145,9 @@ function renderHeader() {
     return;
   }
   chip.classList.remove('hidden');
-  tabs.classList.remove('hidden');
+  // Los jugadores normales solo tienen una pantalla (el tablero), así
+  // que no necesitan pestañas. El admin sí, para acceder a su panel.
+  tabs.classList.toggle('hidden', state.player.role !== 'admin');
   $('#user-name-label').textContent = state.player.name;
   const badge = $('#user-role-badge');
   if (state.player.role === 'admin') {
@@ -141,54 +159,78 @@ function renderHeader() {
   $all('.admin-only').forEach(el => el.classList.toggle('hidden', state.player.role !== 'admin'));
 }
 
-// ---------- render: envío de pruebas ----------
+// ---------- render: tu aportación ----------
 
-const ICONOS_PRUEBA = ['fa-dice', 'fa-fire', 'fa-champagne-glasses', 'fa-face-grin-tongue-wink', 'fa-martini-glass-citrus'];
+function renderMiAportacion() {
+  const cont = $('#card-mi-aportacion');
+  const mia = state.miPrueba;
 
-function renderPruebasEnviadas() {
-  const ul = $('#lista-pruebas-enviadas');
-  ul.innerHTML = '';
-  if (state.pruebas.length === 0) {
-    ul.innerHTML = '<li class="empty"><i class="fa-solid fa-ghost"></i> Nadie ha enviado ninguna prueba todavía.</li>';
+  if (state.fase === 'submission') {
+    if (mia) {
+      cont.innerHTML = `
+        <h3><i class="fa-solid fa-circle-check"></i> Tu aportación</h3>
+        <p class="modal-texto">${escapeHtml(mia.texto)}</p>
+        <p class="subtitle small"><i class="fa-solid fa-hourglass-half"></i> Guardada. Se repartirá por el tablero cuando el admin inicie el bingo.</p>
+      `;
+    } else {
+      cont.innerHTML = `
+        <h3><i class="fa-solid fa-lightbulb"></i> Tu aportación al bingo</h3>
+        <p class="subtitle small">Algo que se pueda cumplir este finde. ¡Cuanto más random, mejor!</p>
+        <form id="prueba-form">
+          <label class="field">
+            <textarea id="prueba-texto" rows="3" maxlength="200" placeholder="Ej: Bañarse en el río antes de las 12h..." required></textarea>
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">
+            <i class="fa-solid fa-paper-plane"></i> Enviar
+          </button>
+        </form>
+      `;
+      $('#prueba-form').addEventListener('submit', enviarPrueba);
+    }
     return;
   }
-  state.pruebas.forEach((p, idx) => {
-    if (p.libre) return;
-    const submitter = state.players.find(pl => pl.id === p.submitted_by);
-    const li = document.createElement('li');
-    const icon = ICONOS_PRUEBA[idx % ICONOS_PRUEBA.length];
-    let estado = '<i class="fa-solid fa-lock"></i> oculta';
-    if (p.completada) estado = '<i class="fa-solid fa-champagne-glasses"></i> cumplida';
-    else if (p.revealed) estado = '<i class="fa-solid fa-eye"></i> activa';
-    li.innerHTML = `<i class="fa-solid ${icon}"></i> Prueba de <strong>${submitter ? submitter.name : 'alguien'}</strong> &middot; ${estado}`;
-    ul.appendChild(li);
-  });
+
+  if (!mia) {
+    cont.innerHTML = `
+      <h3><i class="fa-solid fa-ghost"></i> Tu aportación</h3>
+      <p class="subtitle small">No enviaste ninguna prueba esta vez. ¡A disfrutar del bingo de los demás! 🍻</p>
+    `;
+    return;
+  }
+
+  let estadoHtml;
+  if (mia.completada) {
+    const cumplidor = state.players.find(pl => pl.id === mia.completada_por);
+    estadoHtml = `<p class="modal-meta"><i class="fa-solid fa-champagne-glasses"></i> Cumplida por <strong>${cumplidor ? cumplidor.name : '?'}</strong></p>`;
+  } else if (mia.revealed) {
+    estadoHtml = `<p class="modal-meta"><i class="fa-solid fa-fire"></i> ¡Ya está activa en el tablero!</p>`;
+  } else {
+    estadoHtml = `<p class="modal-meta"><i class="fa-solid fa-lock"></i> Sigue oculta, se activará cuando llegue su momento.</p>`;
+  }
+
+  cont.innerHTML = `
+    <h3><i class="fa-solid fa-star"></i> Tu aportación</h3>
+    <p class="modal-texto">${escapeHtml(mia.texto)}</p>
+    ${estadoHtml}
+  `;
 }
 
-function renderFaseAvisoSubmission() {
-  $('#pruebas-fase-aviso').classList.toggle('hidden', state.fase === 'submission');
-  $('#prueba-form').classList.toggle('hidden', state.fase !== 'submission');
-}
-
-function initPruebaForm() {
-  const form = $('#prueba-form');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const texto = $('#prueba-texto').value.trim();
-    if (!texto) return;
-    const btn = form.querySelector('button[type="submit"]');
-    btn.disabled = true;
-    try {
-      const { error } = await supabaseClient.rpc('crear_prueba', { p_player_id: state.player.id, p_texto: texto });
-      if (error) throw error;
-      $('#prueba-texto').value = '';
-      mostrarToast('¡Prueba enviada! 🎉');
-    } catch (err) {
-      mostrarToast(err.message || 'Error al enviar la prueba');
-    } finally {
-      btn.disabled = false;
-    }
-  });
+async function enviarPrueba(e) {
+  e.preventDefault();
+  const texto = $('#prueba-texto').value.trim();
+  if (!texto) return;
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  try {
+    const { error } = await supabaseClient.rpc('crear_prueba', { p_player_id: state.player.id, p_texto: texto });
+    if (error) throw error;
+    await cargarMiPrueba();
+    renderMiAportacion();
+    mostrarToast('¡Prueba enviada! 🎉');
+  } catch (err) {
+    mostrarToast(err.message || 'Error al enviar la prueba');
+    btn.disabled = false;
+  }
 }
 
 // ---------- render: tablero ----------
@@ -230,7 +272,7 @@ function renderTablero() {
       cell.innerHTML = `<i class="fa-solid fa-dice cell-icon"></i>`;
     } else if (prueba.libre) {
       cell.classList.add('libre-cell');
-      cell.innerHTML = `<i class="fa-solid fa-gift cell-icon"></i><span class="cell-text">Libre</span>`;
+      cell.innerHTML = `<i class="fa-solid fa-gift cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || 'Comodín')}</span>`;
     } else if (prueba.completada) {
       cell.classList.add('completed-cell');
       const cumplidor = state.players.find(pl => pl.id === prueba.completada_por);
@@ -273,8 +315,8 @@ function cerrarModal() {
 async function abrirCelda(prueba, ev) {
   if (prueba.libre) {
     abrirModal(`
-      <h3><i class="fa-solid fa-gift"></i> Casilla libre</h3>
-      <p class="modal-texto">¡Regalo del bingo! Esta casilla ya está cumplida de fábrica.</p>
+      <h3><i class="fa-solid fa-gift"></i> ${escapeHtml(prueba.texto || 'Comodín')}</h3>
+      <p class="modal-texto">¡Casilla comodín! Ya cuenta como cumplida de fábrica.</p>
     `);
     return;
   }
@@ -426,7 +468,7 @@ async function renderAsignaciones() {
 function initAdminActions() {
   $('#btn-iniciar-bingo').addEventListener('click', async () => {
     if (!confirm('¿Iniciar el bingo? Se repartirán las pruebas enviadas por el tablero.')) return;
-    const { error } = await supabaseClient.rpc('iniciar_bingo', { p_player_id: state.player.id, p_board_size: 25 });
+    const { error } = await supabaseClient.rpc('iniciar_bingo', { p_player_id: state.player.id });
     if (error) { mostrarToast(error.message); return; }
     mostrarToast('¡El bingo ha comenzado! 🔥');
   });
@@ -445,15 +487,15 @@ function initRealtime() {
   supabaseClient
     .channel('bingo-tailun')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pruebas' }, async () => {
-      await cargarPruebas();
-      renderPruebasEnviadas();
+      await Promise.all([cargarPruebas(), cargarMiPrueba(), cargarMisResponsabilidades()]);
       renderTablero();
+      renderMiAportacion();
       if (state.player?.role === 'admin') await renderAsignaciones();
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_state' }, async () => {
       await cargarGameState();
-      renderFaseAvisoSubmission();
       renderTablero();
+      renderMiAportacion();
       renderAdmin();
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'eventos' }, (payload) => {
@@ -486,21 +528,28 @@ async function arrancarApp(player) {
   state.player = player;
   renderHeader();
 
-  await Promise.all([cargarGameState(), cargarPruebas(), cargarPlayers(), cargarMisResponsabilidades()]);
+  await Promise.all([
+    cargarGameState(),
+    cargarPruebas(),
+    cargarPlayers(),
+    cargarMisResponsabilidades(),
+    cargarMiPrueba(),
+  ]);
 
-  renderFaseAvisoSubmission();
-  renderPruebasEnviadas();
   renderTablero();
+  renderMiAportacion();
   renderAdmin();
   if (player.role === 'admin') await renderAsignaciones();
 
-  cambiarVista('view-pruebas');
+  cambiarVista('view-tablero');
   initRealtime();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  actualizarTemaPorHora();
+  setInterval(actualizarTemaPorHora, 60_000);
+
   initLoginForm();
-  initPruebaForm();
   initAdminActions();
   initTabs();
   initModal();
@@ -508,7 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const sesion = leerSesion();
   if (sesion) {
-    cambiarVista('view-pruebas');
+    cambiarVista('view-tablero');
     await arrancarApp(sesion);
   } else {
     cambiarVista('view-login');

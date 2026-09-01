@@ -74,39 +74,13 @@
       </div>
     </section>
 
-    <!-- NAV TABS -->
+    <!-- NAV TABS (solo visible para el admin: tablero + panel admin) -->
     <nav id="tabs" class="tabs hidden">
-      <button class="tab-btn" data-view="view-pruebas"><i class="fa-solid fa-pen-fancy"></i><span>Pruebas</span></button>
       <button class="tab-btn" data-view="view-tablero"><i class="fa-solid fa-table-cells"></i><span>Tablero</span></button>
       <button class="tab-btn admin-only hidden" data-view="view-admin"><i class="fa-solid fa-crown"></i><span>Admin</span></button>
     </nav>
 
-    <!-- ENVÍO DE PRUEBAS -->
-    <section id="view-pruebas" class="view">
-      <div class="card">
-        <h2><i class="fa-solid fa-lightbulb"></i> Propón una prueba</h2>
-        <p class="subtitle">Algo que se pueda cumplir este finde. ¡Cuanto más random, mejor!</p>
-        <form id="prueba-form">
-          <label class="field">
-            <textarea id="prueba-texto" rows="3" maxlength="200" placeholder="Ej: Bañarse en el río antes de las 12h..." required></textarea>
-          </label>
-          <button type="submit" class="btn btn-primary btn-block">
-            <i class="fa-solid fa-paper-plane"></i> Enviar prueba
-          </button>
-        </form>
-        <p id="pruebas-fase-aviso" class="notice hidden">
-          <i class="fa-solid fa-lock"></i> El bingo ya ha empezado, no se admiten más pruebas.
-        </p>
-      </div>
-
-      <div class="card">
-        <h3><i class="fa-solid fa-list-check"></i> Pruebas enviadas por todos</h3>
-        <p class="subtitle small">Ocultas hasta que se activen en el tablero.</p>
-        <ul id="lista-pruebas-enviadas" class="simple-list"></ul>
-      </div>
-    </section>
-
-    <!-- TABLERO -->
+    <!-- TABLERO (pantalla principal: cuadrícula + tu aportación) -->
     <section id="view-tablero" class="view">
       <div class="card board-card">
         <div class="board-header">
@@ -118,6 +92,8 @@
         </p>
         <div id="bingo-grid" class="bingo-grid"></div>
       </div>
+
+      <div class="card" id="card-mi-aportacion"></div>
     </section>
 
     <!-- ADMIN -->

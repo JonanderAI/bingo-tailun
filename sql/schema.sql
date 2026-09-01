@@ -117,7 +117,7 @@ $$;
 
 grant execute on function login_jugador(text, text) to anon;
 
--- Crear una prueba (fase de envíos)
+-- Crear una prueba (fase de envíos). Una por jugador: es "su aportación".
 create or replace function crear_prueba(p_player_id uuid, p_texto text)
 returns uuid
 language plpgsql
@@ -131,6 +131,9 @@ begin
   if v_fase <> 'submission' then
     raise exception 'Ya no se pueden enviar pruebas, el bingo ha empezado';
   end if;
+  if exists (select 1 from pruebas where submitted_by = p_player_id) then
+    raise exception 'Ya has enviado tu aportación';
+  end if;
   insert into pruebas(texto, submitted_by) values (trim(p_texto), p_player_id)
   returning id into v_id;
   return v_id;
@@ -138,6 +141,18 @@ end;
 $$;
 
 grant execute on function crear_prueba(uuid, text) to anon;
+
+-- La aportación del propio jugador: siempre visible para él/ella aunque
+-- todavía esté oculta para el resto (es su prueba, no hay secreto).
+create or replace function mi_prueba(p_player_id uuid)
+returns setof pruebas
+language sql
+security definer
+as $$
+  select * from pruebas where submitted_by = p_player_id;
+$$;
+
+grant execute on function mi_prueba(uuid) to anon;
 
 -- Ver el texto de una prueba oculta (solo admin o responsable asignado)
 create or replace function ver_prueba_oculta(p_prueba_id uuid, p_player_id uuid)
@@ -193,9 +208,11 @@ $$;
 
 grant execute on function listar_pruebas_admin(uuid) to anon;
 
--- Iniciar el bingo: reparte posiciones aleatorias entre las pruebas
--- enviadas (hasta el tamaño del tablero) y rellena huecos como "libres"
-create or replace function iniciar_bingo(p_player_id uuid, p_board_size int default 25)
+-- Iniciar el bingo: calcula automáticamente el lado del tablero (el
+-- cuadrado más pequeño que cabe con todas las pruebas + 1 comodín
+-- central) y reparte las posiciones al azar. Las casillas que sobren
+-- quedan vacías (decorativas, sin prueba).
+create or replace function iniciar_bingo(p_player_id uuid)
 returns boolean
 language plpgsql
 security definer
@@ -204,6 +221,10 @@ declare
   v_role text;
   v_ids uuid[];
   v_count int;
+  v_side int;
+  v_size int;
+  v_centro int;
+  v_pos int;
   i int;
 begin
   select role into v_role from players where id = p_player_id;
@@ -219,22 +240,28 @@ begin
     raise exception 'No hay pruebas enviadas todavía';
   end if;
 
-  for i in 0 .. least(v_count, p_board_size) - 1 loop
-    update pruebas set position = i where id = v_ids[i + 1];
+  v_side := greatest(3, ceil(sqrt(v_count + 1))::int);
+  v_size := v_side * v_side;
+  v_centro := v_size / 2;
+
+  insert into pruebas (texto, position, libre, revealed, completada)
+  values ('Comodín', v_centro, true, true, true);
+
+  v_pos := 0;
+  for i in 1 .. v_count loop
+    if v_pos = v_centro then
+      v_pos := v_pos + 1;
+    end if;
+    update pruebas set position = v_pos where id = v_ids[i];
+    v_pos := v_pos + 1;
   end loop;
 
-  -- posiciones sobrantes del tablero -> casillas libres (comodín)
-  for i in v_count .. p_board_size - 1 loop
-    insert into pruebas (texto, position, libre, revealed, completada)
-    values ('Casilla libre', i, true, true, true);
-  end loop;
-
-  update game_state set fase = 'playing', board_size = p_board_size, updated_at = now() where id = 1;
+  update game_state set fase = 'playing', board_size = v_size, updated_at = now() where id = 1;
   return true;
 end;
 $$;
 
-grant execute on function iniciar_bingo(uuid, int) to anon;
+grant execute on function iniciar_bingo(uuid) to anon;
 
 -- Asignar responsable a una prueba (admin)
 create or replace function asignar_responsable(p_player_id uuid, p_prueba_id uuid, p_responsable_id uuid)
