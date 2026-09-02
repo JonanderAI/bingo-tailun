@@ -139,7 +139,6 @@ h1, h2, h3 { margin-top: 0; margin-bottom: 8px; }
   color: var(--text);
   cursor: pointer;
 }
-.user-chip-caret { font-size: 0.65rem; color: var(--text-dim); margin-left: 2px; }
 .user-avatar { font-size: 1.15rem; line-height: 1; }
 
 .user-menu {
