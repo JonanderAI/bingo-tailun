@@ -504,7 +504,9 @@ select option {
 .board-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  /* Mismo hueco entre el temporizador y el tablero que el padding de
+     la propia tarjeta. */
+  gap: 8px;
   /* Menos padding que el resto de tarjetas, igual por los 4 lados: el
      tablero debe aprovechar todo el ancho disponible, casillas lo más
      grandes posible. */
