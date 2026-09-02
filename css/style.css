@@ -617,13 +617,17 @@ select option {
 
 .bingo-cell.puede-ver { border-color: var(--accent); }
 
-.bingo-cell.revealed-cell { background: rgba(23, 195, 178, 0.12); border-color: var(--accent-2); }
+/* Los degradados de estas 3 celdas usan rgba (translúcidos) para el
+   tinte de color, así que sin un fondo opaco detrás dejaban verse la
+   barra de línea (u otra cosa) a través. Se añade var(--bg-soft) como
+   última capa para que quede opaco sin perder el degradado de color. */
+.bingo-cell.revealed-cell { background: linear-gradient(rgba(23, 195, 178, 0.12), rgba(23, 195, 178, 0.12)), var(--bg-soft); border-color: var(--accent-2); }
 .bingo-cell.revealed-cell .cell-icon-bg { color: var(--accent-2); }
 
-.bingo-cell.completed-cell { background: linear-gradient(160deg, rgba(255, 79, 168, 0.22), rgba(255, 79, 168, 0.06)); border-color: var(--primary); }
+.bingo-cell.completed-cell { background: linear-gradient(160deg, rgba(255, 79, 168, 0.22), rgba(255, 79, 168, 0.06)), var(--bg-soft); border-color: var(--primary); }
 .bingo-cell.completed-cell .cell-icon-bg { color: var(--primary); }
 
-.bingo-cell.libre-cell { background: linear-gradient(160deg, rgba(124, 92, 255, 0.22), rgba(124, 92, 255, 0.06)); border-color: var(--accent); }
+.bingo-cell.libre-cell { background: linear-gradient(160deg, rgba(124, 92, 255, 0.22), rgba(124, 92, 255, 0.06)), var(--bg-soft); border-color: var(--accent); }
 .bingo-cell.libre-cell .cell-icon-bg { color: var(--accent); opacity: 0.9; }
 .bingo-cell.libre-cell.en-linea { border-color: var(--success); }
 .bingo-cell.libre-cell.en-linea .cell-icon-bg { color: var(--success); }

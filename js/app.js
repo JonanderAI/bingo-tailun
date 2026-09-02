@@ -751,14 +751,19 @@ function renderAdmin() {
   const info = $('#programado-info');
   const cancelBtn = $('#btn-cancelar-programacion');
   const input = $('#programar-fecha');
+  const reiniciarBtn = $('#btn-reiniciar-bingo');
 
   if (state.fase !== 'submission') {
+    // Ya no se puede programar ni cancelar/reiniciar el temporizador
+    // una vez empezado el bingo (no hace nada, el inicio ya pasó).
     info.classList.add('hidden');
     cancelBtn.classList.add('hidden');
+    reiniciarBtn.classList.add('hidden');
     $('#programar-form').classList.add('hidden');
     return;
   }
   $('#programar-form').classList.remove('hidden');
+  reiniciarBtn.classList.remove('hidden');
 
   if (state.inicioAt) {
     const d = new Date(state.inicioAt);
