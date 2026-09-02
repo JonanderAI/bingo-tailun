@@ -16,12 +16,16 @@ create table if not exists players (
   created_at timestamptz not null default now()
 );
 
--- Si ya tenías la tabla creada de antes (con PIN de 4 dígitos, sin
--- avatar), ejecuta esto una vez para actualizarla sin perder jugadores:
--- alter table players add column if not exists avatar text not null default '🎉';
--- alter table players drop constraint if exists players_pin_check;
--- alter table players add constraint players_pin_check check (pin ~ '^[0-9]{6}$');
--- alter table players add constraint players_pin_key unique (pin);
+-- Migración: si la tabla ya existía de antes (PIN de 4 dígitos, sin
+-- avatar), esto la pone al día sin perder jugadores. "create table if not
+-- exists" de arriba NO toca una tabla que ya existe, así que estas líneas
+-- van sueltas y se ejecutan siempre (son idempotentes, no fallan si ya
+-- estaban aplicadas).
+alter table players add column if not exists avatar text not null default '🎉';
+alter table players drop constraint if exists players_pin_check;
+alter table players add constraint players_pin_check check (pin ~ '^[0-9]{6}$');
+alter table players drop constraint if exists players_pin_key;
+alter table players add constraint players_pin_key unique (pin);
 
 create table if not exists pruebas (
   id uuid primary key default gen_random_uuid(),
@@ -39,8 +43,8 @@ create table if not exists pruebas (
   completada_at timestamptz
 );
 
--- Si ya tenías la tabla creada de antes, añade la columna nueva:
--- alter table pruebas add column if not exists gestionado_por uuid references players(id) on delete set null;
+alter table pruebas add column if not exists responsable_id uuid references players(id) on delete set null;
+alter table pruebas add column if not exists gestionado_por uuid references players(id) on delete set null;
 
 create table if not exists game_state (
   id int primary key default 1,
@@ -52,8 +56,7 @@ create table if not exists game_state (
 );
 insert into game_state (id) values (1) on conflict (id) do nothing;
 
--- Si ya tenías la tabla creada de antes, añade la columna del inicio programado:
--- alter table game_state add column if not exists inicio_at timestamptz;
+alter table game_state add column if not exists inicio_at timestamptz;
 
 create table if not exists eventos (
   id uuid primary key default gen_random_uuid(),
