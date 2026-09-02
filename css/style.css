@@ -766,6 +766,17 @@ select option {
   text-overflow: ellipsis;
 }
 
+/* Casillas cumplidas con foto de recuerdo adjunta */
+.cell-foto-badge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  z-index: 2;
+  font-size: 0.75rem;
+  color: var(--primary);
+}
+.bingo-cell.en-linea .cell-foto-badge { color: var(--success); }
+
 /* ---------- Admin: asignaciones ---------- */
 
 .assign-list { display: flex; flex-direction: column; gap: 10px; }
@@ -856,6 +867,38 @@ select option {
 }
 .modal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 .modal-meta { color: var(--text-dim); font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+
+.modal-foto {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1.5px solid var(--card-border);
+  margin: 12px 0;
+}
+
+.foto-input-oculto { display: none; }
+.foto-picker-btn { margin-top: 6px; }
+.foto-preview-wrap {
+  position: relative;
+  margin-top: -4px;
+}
+.foto-preview-img {
+  display: block;
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1.5px solid var(--card-border);
+}
+.foto-quitar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(10, 5, 20, 0.6);
+  color: #fff;
+}
 
 /* ---------- Cargando ---------- */
 

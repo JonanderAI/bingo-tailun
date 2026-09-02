@@ -91,7 +91,10 @@ caché del navegador y de la CDN de GitHub Pages.
   paso quién ha sido el culpable, y se marca cumplida a la vez → lluvia
   de emojis 🧨🔥😈🦀🦭 para todo el mundo.
 - **Cumplir una prueba**: chupito solo para el culpable elegido (aviso
-  para todos), quien la destapó no bebe.
+  para todos), quien la destapó no bebe. Al elegir al culpable se puede
+  adjuntar una foto de recuerdo (cámara o archivo); las casillas con
+  foto llevan un icono de cámara en la esquina, y al abrirlas se ve la
+  foto junto al texto.
 - **Línea / Bingo**: se detecta automáticamente al completar una fila,
   columna o el tablero entero → aviso de "todos bebéis" para todo el mundo.
 - **Usuarios (admin)**: ver, crear, editar (incluido el rol, para hacer

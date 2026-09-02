@@ -110,6 +110,7 @@ function crearClienteMock() {
   });
 
   const busHandlers = [];
+  const mockStorageUrls = new Map();
   function emit(table, payload) {
     busHandlers.filter(h => h.table === table).forEach(h => h.cb(payload || {}));
   }
@@ -131,6 +132,7 @@ function crearClienteMock() {
       texto: (p.revealed || p.libre) ? p.texto : null,
       responsable_id: (p.revealed || p.libre) ? p.responsable_id : null,
       gestionado_por: p.gestionado_por || null,
+      foto_url: (p.revealed || p.libre) ? (p.foto_url || null) : null,
     }));
   }
 
@@ -287,7 +289,7 @@ function crearClienteMock() {
       return ok(true);
     },
 
-    completar_prueba: ({ p_player_id, p_prueba_id, p_cumplidor_id }) => {
+    completar_prueba: ({ p_player_id, p_prueba_id, p_cumplidor_id, p_foto_url }) => {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
       if (!player || !prueba) return fail('No autorizado');
@@ -298,6 +300,7 @@ function crearClienteMock() {
       prueba.gestionado_por = p_player_id;
       prueba.completada_at = new Date().toISOString();
       prueba.revealed = true;
+      if (p_foto_url) prueba.foto_url = p_foto_url;
 
       const cumplidor = players.find(p => p.id === p_cumplidor_id);
       const evento = {
@@ -335,6 +338,7 @@ function crearClienteMock() {
       prueba.gestionado_por = null;
       prueba.revealed_at = null;
       prueba.completada_at = null;
+      prueba.foto_url = null;
       emit('pruebas', {});
       return ok(true);
     },
@@ -495,6 +499,23 @@ function crearClienteMock() {
         subscribe() { return chan; },
       };
       return chan;
+    },
+
+    // No hay Storage real en modo demo: la "subida" solo guarda un blob:
+    // URL local (vive mientras la pestaña esté abierta), para poder ver
+    // la foto de recuerdo sin tener Supabase configurado.
+    storage: {
+      from(bucket) {
+        return {
+          async upload(path, file) {
+            mockStorageUrls.set(`${bucket}/${path}`, URL.createObjectURL(file));
+            return { data: { path }, error: null };
+          },
+          getPublicUrl(path) {
+            return { data: { publicUrl: mockStorageUrls.get(`${bucket}/${path}`) || '' } };
+          },
+        };
+      },
     },
   };
 }

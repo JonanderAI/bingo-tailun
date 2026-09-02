@@ -59,6 +59,7 @@ create table if not exists pruebas (
 
 alter table pruebas add column if not exists responsable_id uuid references players(id) on delete set null;
 alter table pruebas add column if not exists gestionado_por uuid references players(id) on delete set null;
+alter table pruebas add column if not exists foto_url text; -- foto de recuerdo, opcional, al marcarla cumplida
 
 create table if not exists game_state (
   id int primary key default 1,
@@ -99,6 +100,21 @@ revoke all on pruebas from anon, authenticated;
 revoke all on game_state from anon, authenticated;
 revoke all on eventos from anon, authenticated;
 
+-- Bucket de Storage para las fotos de recuerdo al cumplir una prueba.
+-- Público (se sirven por URL directa) y con subida abierta: como no hay
+-- Supabase Auth real, el cliente sube directamente con la anon key.
+insert into storage.buckets (id, name, public)
+values ('recuerdos', 'recuerdos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "recuerdos lectura publica" on storage.objects;
+create policy "recuerdos lectura publica" on storage.objects
+  for select to anon, authenticated using (bucket_id = 'recuerdos');
+
+drop policy if exists "recuerdos subida publica" on storage.objects;
+create policy "recuerdos subida publica" on storage.objects
+  for insert to anon, authenticated with check (bucket_id = 'recuerdos');
+
 -- Lecturas públicas seguras vía vistas (sin pin, sin texto oculto):
 
 create or replace view players_publicos as
@@ -118,7 +134,8 @@ create or replace view pruebas_publicas as
     case when revealed or libre then texto else null end as texto,
     case when revealed or libre then responsable_id else null end as responsable_id,
     created_at,
-    gestionado_por
+    gestionado_por,
+    case when revealed or libre then foto_url else null end as foto_url
   from pruebas;
 
 grant select on players_publicos to anon, authenticated;
@@ -532,8 +549,11 @@ $$;
 grant execute on function revelar_prueba(uuid, uuid) to anon;
 
 -- Marcar una prueba como cumplida -> dispara evento de chupito
--- y comprueba línea / bingo
-create or replace function completar_prueba(p_player_id uuid, p_prueba_id uuid, p_cumplidor_id uuid)
+-- y comprueba línea / bingo. La foto es opcional (ya subida a Storage
+-- por el cliente, aquí solo se guarda la URL pública).
+drop function if exists completar_prueba(uuid, uuid, uuid);
+
+create or replace function completar_prueba(p_player_id uuid, p_prueba_id uuid, p_cumplidor_id uuid, p_foto_url text default null)
 returns jsonb
 language plpgsql
 security definer
@@ -561,7 +581,8 @@ begin
   end if;
 
   update pruebas
-    set completada = true, completada_por = p_cumplidor_id, gestionado_por = p_player_id, completada_at = now(), revealed = true
+    set completada = true, completada_por = p_cumplidor_id, gestionado_por = p_player_id, completada_at = now(),
+        revealed = true, foto_url = coalesce(p_foto_url, foto_url)
     where id = p_prueba_id;
 
   select name into v_cumplidor_name from players where id = p_cumplidor_id;
@@ -606,7 +627,7 @@ begin
 end;
 $$;
 
-grant execute on function completar_prueba(uuid, uuid, uuid) to anon;
+grant execute on function completar_prueba(uuid, uuid, uuid, text) to anon;
 
 -- Deshacer: por si se marcó cumplida por error o al final no ha pasado,
 -- el admin o quien la mandó puede volver a ocultarla (no vale para
@@ -631,7 +652,7 @@ begin
   end if;
   update pruebas
     set revealed = false, completada = false, completada_por = null,
-        gestionado_por = null, revealed_at = null, completada_at = null
+        gestionado_por = null, revealed_at = null, completada_at = null, foto_url = null
     where id = p_prueba_id;
   return true;
 end;

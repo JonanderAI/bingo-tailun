@@ -582,7 +582,8 @@ function renderTablero() {
       cell.innerHTML = `<i class="fa-solid fa-gift cell-icon-bg cell-icon-vacia"></i>`;
     } else if (prueba.completada) {
       cell.classList.add('completed-cell');
-      cell.innerHTML = `<i class="fa-solid fa-burst cell-icon-bg cell-icon-vacia"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>`;
+      const fotoBadge = prueba.foto_url ? '<i class="fa-solid fa-camera cell-foto-badge"></i>' : '';
+      cell.innerHTML = `${fotoBadge}<i class="fa-solid fa-burst cell-icon-bg cell-icon-vacia"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>`;
     } else if (prueba.revealed) {
       cell.classList.add('revealed-cell');
       cell.innerHTML = `<i class="fa-solid fa-fire cell-icon-bg"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span>`;
@@ -775,6 +776,7 @@ async function abrirCelda(prueba, ev) {
     abrirModal(`
       <h3><i class="fa-solid fa-champagne-glasses"></i> Prueba cumplida</h3>
       <p class="modal-texto">${escapeHtml(prueba.texto)}</p>
+      ${prueba.foto_url ? `<img src="${escapeHtml(prueba.foto_url)}" class="modal-foto" alt="Foto de recuerdo" />` : ''}
       <p class="modal-meta"><i class="fa-solid fa-champagne-glasses"></i> Chupito para <strong>${escapeHtml(nombreConAvatar(prueba.completada_por))}</strong></p>
       ${autorizado ? `
         <div class="modal-actions">
@@ -857,6 +859,7 @@ async function abrirCelda(prueba, ev) {
 }
 
 function abrirModalElegirResponsable(pruebaId) {
+  let fotoSeleccionada = null;
   const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
   abrirModal(`
     <h3><i class="fa-solid fa-user-check"></i> ¿Quién ha sido el culpable?</h3>
@@ -864,23 +867,60 @@ function abrirModalElegirResponsable(pruebaId) {
       <label class="field">
         <select id="select-cumplidor">${opciones}</select>
       </label>
+      <label class="field">
+        <span><i class="fa-solid fa-camera"></i> Foto de recuerdo (opcional)</span>
+        <label for="foto-recuerdo" class="btn btn-ghost btn-block foto-picker-btn">
+          <i class="fa-solid fa-camera"></i> Sacar foto / elegir archivo
+        </label>
+        <input type="file" id="foto-recuerdo" accept="image/*" capture="environment" class="foto-input-oculto" />
+      </label>
+      <div id="foto-preview-wrap" class="foto-preview-wrap hidden">
+        <img id="foto-preview-img" class="foto-preview-img" alt="" />
+        <button type="button" id="foto-quitar" class="icon-btn foto-quitar" title="Quitar foto"><i class="fa-solid fa-xmark"></i></button>
+      </div>
       <button class="btn btn-primary btn-block" id="btn-marcar-cumplida">
         <i class="fa-solid fa-champagne-glasses"></i> Destapar y marcar cumplida
       </button>
     </div>
   `);
+  $('#foto-recuerdo').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    fotoSeleccionada = file;
+    $('#foto-preview-img').src = URL.createObjectURL(file);
+    $('#foto-preview-wrap').classList.remove('hidden');
+  });
+  $('#foto-quitar').addEventListener('click', () => {
+    fotoSeleccionada = null;
+    $('#foto-recuerdo').value = '';
+    $('#foto-preview-wrap').classList.add('hidden');
+  });
   $('#btn-marcar-cumplida').addEventListener('click', async () => {
     const cumplidorId = $('#select-cumplidor').value;
-    await marcarCumplida(pruebaId, cumplidorId);
+    await marcarCumplida(pruebaId, cumplidorId, fotoSeleccionada);
   });
 }
 
-async function marcarCumplida(pruebaId, cumplidorId) {
+async function subirFotoRecuerdo(pruebaId, foto) {
+  const ext = ((foto.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
+  const path = `${pruebaId}-${Date.now()}.${ext}`;
+  const { error } = await supabaseClient.storage.from('recuerdos').upload(path, foto);
+  if (error) {
+    mostrarToast('No se ha podido subir la foto, se marca sin foto');
+    return null;
+  }
+  const { data } = supabaseClient.storage.from('recuerdos').getPublicUrl(path);
+  return data?.publicUrl || null;
+}
+
+async function marcarCumplida(pruebaId, cumplidorId, foto) {
   cerrarModal();
+  const fotoUrl = foto ? await subirFotoRecuerdo(pruebaId, foto) : null;
   const { data, error } = await supabaseClient.rpc('completar_prueba', {
     p_player_id: state.player.id,
     p_prueba_id: pruebaId,
     p_cumplidor_id: cumplidorId,
+    p_foto_url: fotoUrl,
   });
   if (error) {
     mostrarToast('No se ha podido marcar como cumplida');
