@@ -844,6 +844,7 @@ select option {
 #modal-content > *:first-child { margin-top: 0; }
 #modal-content > *:last-child { margin-bottom: 0; }
 .modal-emoji-header { font-size: 3rem; text-align: center; line-height: 1; margin-bottom: 4px; }
+.modal-emoji-header + h3 { text-align: center; }
 .modal .modal-texto {
   background: var(--bg-soft);
   border: 1px solid var(--card-border);
