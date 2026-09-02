@@ -561,6 +561,37 @@ $$;
 
 grant execute on function completar_prueba(uuid, uuid, uuid) to anon;
 
+-- Deshacer: por si se marcó cumplida por error o al final no ha pasado,
+-- el admin o quien la mandó puede volver a ocultarla (no vale para
+-- comodines, esos siempre están cumplidos de fábrica).
+create or replace function ocultar_prueba(p_player_id uuid, p_prueba_id uuid)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+  v_submitted_by uuid;
+  v_libre boolean;
+begin
+  select p.role into v_role from players p where p.id = p_player_id;
+  select p.submitted_by, p.libre into v_submitted_by, v_libre from pruebas p where p.id = p_prueba_id;
+  if v_libre then
+    raise exception 'No se puede ocultar un comodín';
+  end if;
+  if v_role <> 'admin' and v_submitted_by is distinct from p_player_id then
+    raise exception 'No autorizado';
+  end if;
+  update pruebas
+    set revealed = false, completada = false, completada_por = null,
+        gestionado_por = null, revealed_at = null, completada_at = null
+    where id = p_prueba_id;
+  return true;
+end;
+$$;
+
+grant execute on function ocultar_prueba(uuid, uuid) to anon;
+
 -- Reiniciar el temporizador (admin): cancela la hora de inicio programada.
 -- No borra pruebas ni eventos: las posiciones ya están fijas desde que
 -- se crearon y no queremos perder el trabajo de todos por error.

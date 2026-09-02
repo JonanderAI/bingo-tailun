@@ -265,6 +265,22 @@ function crearClienteMock() {
       return ok({ ok: true, linea, bingo });
     },
 
+    ocultar_prueba: ({ p_player_id, p_prueba_id }) => {
+      const player = players.find(p => p.id === p_player_id);
+      const prueba = pruebas.find(p => p.id === p_prueba_id);
+      if (!player || !prueba) return fail('No autorizado');
+      if (prueba.libre) return fail('No se puede ocultar un comodín');
+      if (player.role !== 'admin' && prueba.submitted_by !== p_player_id) return fail('No autorizado');
+      prueba.revealed = false;
+      prueba.completada = false;
+      prueba.completada_por = null;
+      prueba.gestionado_por = null;
+      prueba.revealed_at = null;
+      prueba.completada_at = null;
+      emit('pruebas', {});
+      return ok(true);
+    },
+
     iniciar_bingo: ({ p_player_id }) => {
       const player = players.find(p => p.id === p_player_id);
       if (!player || player.role !== 'admin') return fail('Solo el admin puede iniciar el bingo');

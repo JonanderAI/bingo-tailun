@@ -634,11 +634,12 @@ select option {
 .bingo-grid.grid-bloqueado .bingo-cell { cursor: default; }
 .bingo-grid.grid-bloqueado .bingo-cell:active { transform: none; }
 
-/* Barra que une visualmente las casillas de una línea completada: solo
-   ocupa el hueco entre ellas (dimensiones puestas por JS en base a la
-   posición real ya montada), nunca se superpone a una casilla. */
+/* Barra que une visualmente las casillas de una línea completada, de
+   punta a punta (dimensiones puestas por JS en base a la posición real
+   ya montada). z-index por debajo de .bingo-cell para quedar detrás. */
 .linea-bar {
   position: absolute;
+  z-index: 0;
   background: var(--success);
   border-radius: 4px;
   pointer-events: none;

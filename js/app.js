@@ -605,17 +605,27 @@ async function abrirCelda(prueba, ev) {
     return;
   }
 
+  // Quién puede destapar/completar/ocultar esta prueba: el admin o quien la mandó.
+  const autorizado = state.player.role === 'admin' || prueba.submitted_by === state.player.id;
+
   if (prueba.completada) {
     abrirModal(`
       <h3><i class="fa-solid fa-champagne-glasses"></i> Prueba cumplida</h3>
       <p class="modal-texto">${escapeHtml(prueba.texto)}</p>
       <p class="modal-meta"><i class="fa-solid fa-champagne-glasses"></i> Chupito para <strong>${escapeHtml(nombreConAvatar(prueba.completada_por))}</strong></p>
+      ${autorizado ? `
+        <div class="modal-actions">
+          <button class="btn btn-ghost btn-block" id="btn-ocultar-prueba">
+            <i class="fa-solid fa-rotate-left"></i> No ha pasado: volver a ocultar
+          </button>
+        </div>
+      ` : ''}
     `);
+    if (autorizado) {
+      $('#btn-ocultar-prueba').addEventListener('click', () => ocultarPrueba(prueba.id));
+    }
     return;
   }
-
-  // Quién puede destapar/completar esta prueba: el admin o quien la mandó.
-  const autorizado = state.player.role === 'admin' || prueba.submitted_by === state.player.id;
 
   if (prueba.revealed) {
     // Caso raro (no debería pasar con el flujo normal, revelar y completar
@@ -714,6 +724,16 @@ async function marcarCumplida(pruebaId, cumplidorId) {
     return;
   }
   lanzarEmojis();
+}
+
+async function ocultarPrueba(pruebaId) {
+  cerrarModal();
+  const { error } = await supabaseClient.rpc('ocultar_prueba', {
+    p_player_id: state.player.id,
+    p_prueba_id: pruebaId,
+  });
+  if (error) { mostrarToast(error.message); return; }
+  mostrarToast('Prueba oculta de nuevo');
 }
 
 // ---------- admin ----------
