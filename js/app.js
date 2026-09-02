@@ -474,21 +474,7 @@ function renderTablero() {
     }
   }
 
-  // Barra de fondo que une visualmente las casillas de cada línea
-  // completada (por detrás de las celdas, se ven en los huecos entre
-  // ellas). Van primero en el DOM para quedar debajo de las celdas.
-  filasCompletas.forEach((f) => {
-    const bar = document.createElement('div');
-    bar.className = 'linea-bar linea-fila';
-    bar.style.top = `${((f + 0.5) / lado) * 100}%`;
-    grid.appendChild(bar);
-  });
-  colsCompletas.forEach((c) => {
-    const bar = document.createElement('div');
-    bar.className = 'linea-bar linea-col';
-    bar.style.left = `${((c + 0.5) / lado) * 100}%`;
-    grid.appendChild(bar);
-  });
+  const celdaEls = new Array(state.boardSize);
 
   for (let i = 0; i < state.boardSize; i++) {
     const prueba = state.pruebas.find(p => p.position === i);
@@ -547,6 +533,42 @@ function renderTablero() {
       cell.addEventListener('click', (ev) => abrirCelda(prueba, ev));
     }
     grid.appendChild(cell);
+    celdaEls[i] = cell;
+  }
+
+  // Barra que une visualmente las casillas de cada línea completada,
+  // pero solo en los huecos entre ellas (nunca por encima de una
+  // casilla): se calcula con la posición real ya montada en el DOM.
+  if (filasCompletas.size || colsCompletas.size) {
+    const gridRect = grid.getBoundingClientRect();
+    const grosor = 8;
+
+    filasCompletas.forEach((f) => {
+      for (let c = 0; c < lado - 1; c++) {
+        const a = celdaEls[f * lado + c].getBoundingClientRect();
+        const b = celdaEls[f * lado + c + 1].getBoundingClientRect();
+        const bar = document.createElement('div');
+        bar.className = 'linea-bar';
+        bar.style.left = `${a.right - gridRect.left}px`;
+        bar.style.width = `${b.left - a.right}px`;
+        bar.style.top = `${(a.top + a.bottom) / 2 - gridRect.top - grosor / 2}px`;
+        bar.style.height = `${grosor}px`;
+        grid.appendChild(bar);
+      }
+    });
+    colsCompletas.forEach((c) => {
+      for (let f = 0; f < lado - 1; f++) {
+        const a = celdaEls[f * lado + c].getBoundingClientRect();
+        const b = celdaEls[(f + 1) * lado + c].getBoundingClientRect();
+        const bar = document.createElement('div');
+        bar.className = 'linea-bar';
+        bar.style.top = `${a.bottom - gridRect.top}px`;
+        bar.style.height = `${b.top - a.bottom}px`;
+        bar.style.left = `${(a.left + a.right) / 2 - gridRect.left - grosor / 2}px`;
+        bar.style.width = `${grosor}px`;
+        grid.appendChild(bar);
+      }
+    });
   }
 }
 

@@ -225,7 +225,9 @@ h2 i, h3 i { margin-right: 8px; }
 #app-root {
   max-width: 640px;
   margin: 0 auto;
-  padding: 10px 14px 24px;
+  /* Sin padding arriba: el hueco bajo la cabecera lo pone ya su propio
+     padding inferior (14px), igual que el padding superior de la barra. */
+  padding: 0 14px 24px;
 }
 /* Solo el admin tiene barra de pestañas fija abajo: reservamos hueco
    para que no la tape, pero solo cuando de verdad está en pantalla
@@ -633,17 +635,15 @@ select option {
 .bingo-grid.grid-bloqueado .bingo-cell { cursor: default; }
 .bingo-grid.grid-bloqueado .bingo-cell:active { transform: none; }
 
-/* Barra que une visualmente las casillas de una línea completada, por
-   detrás de las celdas (rellena el hueco entre ellas). */
+/* Barra que une visualmente las casillas de una línea completada: solo
+   ocupa el hueco entre ellas (dimensiones puestas por JS en base a la
+   posición real ya montada), nunca se superpone a una casilla. */
 .linea-bar {
   position: absolute;
-  z-index: 0;
   background: var(--success);
   border-radius: 4px;
   pointer-events: none;
 }
-.linea-bar.linea-fila { left: 0; right: 0; height: 8px; transform: translateY(-50%); }
-.linea-bar.linea-col { top: 0; bottom: 0; width: 8px; transform: translateX(-50%); }
 
 .regla-item {
   display: flex;
