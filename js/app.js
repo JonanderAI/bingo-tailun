@@ -976,6 +976,7 @@ async function marcarCumplida(pruebaId, cumplidorId, foto) {
     mostrarToast('No se ha podido marcar como cumplida');
     return;
   }
+  sonidoExito();
   lanzarEmojis();
 }
 
@@ -1383,6 +1384,7 @@ function initRealtime() {
       await cargarGameState();
       if (faseAnterior === 'submission' && state.fase === 'playing') {
         mostrarToast('¡EMPIEZA EL BINGO! 🎉🔥', { big: true });
+        sonidoFanfarria();
         lanzarEmojis();
         setTimeout(lanzarEmojis, 350);
         setTimeout(lanzarEmojis, 700);
@@ -1395,7 +1397,10 @@ function initRealtime() {
       const ev = payload.new;
       const esGrande = ev.tipo === 'linea' || ev.tipo === 'bingo';
       mostrarToast(ev.mensaje, { big: esGrande });
-      if (esGrande) lanzarEmojis();
+      if (esGrande) {
+        sonidoFanfarria();
+        lanzarEmojis();
+      }
     })
     .subscribe();
 }

@@ -112,6 +112,7 @@ js/config.js           credenciales de Supabase (rellenar)
 js/mock.js              cliente falso para el modo demo (sin BBDD)
 js/supabaseClient.js    elige cliente real o demo según config.js
 js/confetti.js          animación de emojis
+js/sonidos.js           sonidos cortos (tap, éxito, fanfarria) con Web Audio API
 js/app.js               lógica de la app
 sql/schema.sql          tablas, vistas, RLS y funciones RPC
 icons/, manifest.json   iconos y manifest de la PWA
