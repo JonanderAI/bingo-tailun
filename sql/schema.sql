@@ -49,7 +49,7 @@ alter table pruebas add column if not exists gestionado_por uuid references play
 create table if not exists game_state (
   id int primary key default 1,
   fase text not null default 'submission' check (fase in ('submission', 'playing', 'finished')),
-  board_size int not null default 25,
+  board_size int not null default 36,
   inicio_at timestamptz,
   updated_at timestamptz not null default now(),
   constraint single_row check (id = 1)
@@ -57,6 +57,9 @@ create table if not exists game_state (
 insert into game_state (id) values (1) on conflict (id) do nothing;
 
 alter table game_state add column if not exists inicio_at timestamptz;
+-- Tablero fijo de 6x6 (36 casillas), siempre: ya no hay tamaño dinámico.
+alter table game_state alter column board_size set default 36;
+update game_state set board_size = 36 where id = 1;
 
 create table if not exists eventos (
   id uuid primary key default gen_random_uuid(),
@@ -162,18 +165,26 @@ begin
     return query select null::uuid, null::text, null::text, null::text, false, 'Ya existe una cuenta con ese nombre'::text;
   end if;
   if exists (select 1 from players p where p.pin = p_pin) then
-    return query select null::uuid, null::text, null::text, null::text, false, 'Ese PIN ya está en uso, elige otro'::text;
+    return query select null::uuid, null::text, null::text, null::text, false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.'::text;
+    return;
   end if;
   v_avatar := v_avatares[1 + floor(random() * array_length(v_avatares, 1))::int];
-  insert into players(name, pin, avatar) values (trim(p_name), p_pin, v_avatar)
-  returning * into v_new;
+  begin
+    insert into players(name, pin, avatar) values (trim(p_name), p_pin, v_avatar)
+    returning * into v_new;
+  exception when unique_violation then
+    return query select null::uuid, null::text, null::text, null::text, false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.'::text;
+    return;
+  end;
   return query select v_new.id, v_new.name, v_new.avatar, v_new.role, true, null::text;
 end;
 $$;
 
 grant execute on function registrar_jugador(text, text) to anon;
 
--- Crear una prueba (fase de envíos). Hasta 3 por jugador.
+-- Crear una prueba (fase de envíos). Hasta 2 por jugador. La posición en
+-- el tablero (fijo 6x6 = 36 casillas) se asigna al azar en el momento y
+-- se queda fija desde entonces (no se vuelve a repartir al empezar).
 create or replace function crear_prueba(p_player_id uuid, p_texto text)
 returns uuid
 language plpgsql
@@ -183,22 +194,83 @@ declare
   v_id uuid;
   v_fase text;
   v_count int;
+  v_pos int;
 begin
   select fase into v_fase from game_state where id = 1;
   if v_fase <> 'submission' then
     raise exception 'Ya no se pueden enviar pruebas, el bingo ha empezado';
   end if;
   select count(*) into v_count from pruebas where submitted_by = p_player_id;
-  if v_count >= 3 then
-    raise exception 'Máximo 3 pruebas por jugador';
+  if v_count >= 2 then
+    raise exception 'Máximo 2 pruebas por jugador';
   end if;
-  insert into pruebas(texto, submitted_by) values (trim(p_texto), p_player_id)
+
+  select pos into v_pos
+    from generate_series(0, 35) pos
+    where pos not in (select position from pruebas where position is not null)
+    order by random()
+    limit 1;
+
+  if v_pos is null then
+    raise exception 'No quedan casillas libres en el tablero';
+  end if;
+
+  insert into pruebas(texto, submitted_by, position) values (trim(p_texto), p_player_id, v_pos)
   returning id into v_id;
   return v_id;
 end;
 $$;
 
 grant execute on function crear_prueba(uuid, text) to anon;
+
+-- Un jugador edita/borra su propia prueba, solo mientras se pueden enviar
+create or replace function editar_mi_prueba(p_player_id uuid, p_prueba_id uuid, p_texto text)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_fase text;
+  v_submitted_by uuid;
+begin
+  select fase into v_fase from game_state where id = 1;
+  if v_fase <> 'submission' then
+    raise exception 'Ya no se pueden editar pruebas, el bingo ha empezado';
+  end if;
+  select p.submitted_by into v_submitted_by from pruebas p where p.id = p_prueba_id;
+  if v_submitted_by is distinct from p_player_id then
+    raise exception 'No autorizado';
+  end if;
+  update pruebas set texto = trim(p_texto) where id = p_prueba_id;
+  return true;
+end;
+$$;
+
+grant execute on function editar_mi_prueba(uuid, uuid, text) to anon;
+
+create or replace function borrar_mi_prueba(p_player_id uuid, p_prueba_id uuid)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_fase text;
+  v_submitted_by uuid;
+begin
+  select fase into v_fase from game_state where id = 1;
+  if v_fase <> 'submission' then
+    raise exception 'Ya no se pueden borrar pruebas, el bingo ha empezado';
+  end if;
+  select p.submitted_by into v_submitted_by from pruebas p where p.id = p_prueba_id;
+  if v_submitted_by is distinct from p_player_id then
+    raise exception 'No autorizado';
+  end if;
+  delete from pruebas where id = p_prueba_id;
+  return true;
+end;
+$$;
+
+grant execute on function borrar_mi_prueba(uuid, uuid) to anon;
 
 -- La aportación del propio jugador: siempre visible para él/ella aunque
 -- todavía esté oculta para el resto (es su prueba, no hay secreto).
@@ -266,8 +338,10 @@ $$;
 
 grant execute on function listar_pruebas_admin(uuid) to anon;
 
--- Reparto interno: calcula el lado del tablero más pequeño que cabe con
--- todas las pruebas + 1 comodín central y reparte posiciones al azar.
+-- Reparto interno: las pruebas ya tienen su posición fija desde que se
+-- crearon (crear_prueba les da una casilla al azar en el momento). Aquí
+-- solo hace falta rellenar con comodines las casillas del tablero fijo
+-- 6x6 (36) que se hayan quedado vacías, y arrancar la partida.
 -- Sin comprobación de permisos: solo la llaman las funciones de abajo.
 create or replace function _repartir_y_empezar()
 returns void
@@ -275,44 +349,17 @@ language plpgsql
 security definer
 as $$
 declare
-  v_ids uuid[];
-  v_count int;
-  v_side int;
-  v_size int;
-  v_centro int;
   v_pos int;
-  i int;
 begin
-  select array_agg(id order by random()) into v_ids
-  from pruebas where position is null and not libre;
-
-  v_count := coalesce(array_length(v_ids, 1), 0);
-  if v_count = 0 then
-    return;
-  end if;
-
-  -- Tablero siempre cuadrado (lado x lado) que encaje justo con las
-  -- pruebas: si encajan exactas (p.ej. 16 -> 4x4) no hay comodín; si
-  -- sobra un hueco (p.ej. 15 -> 4x4) se pone un comodín en el centro.
-  v_side := greatest(3, ceil(sqrt(v_count))::int);
-  v_size := v_side * v_side;
-  v_centro := v_size / 2;
-
-  if v_size > v_count then
+  for v_pos in
+    select pos from generate_series(0, 35) pos
+    where pos not in (select position from pruebas where position is not null)
+  loop
     insert into pruebas (texto, position, libre, revealed, completada)
-    values ('Comodín', v_centro, true, true, true);
-  end if;
-
-  v_pos := 0;
-  for i in 1 .. v_count loop
-    if v_size > v_count and v_pos = v_centro then
-      v_pos := v_pos + 1;
-    end if;
-    update pruebas set position = v_pos where id = v_ids[i];
-    v_pos := v_pos + 1;
+    values ('Comodín', v_pos, true, true, true);
   end loop;
 
-  update game_state set fase = 'playing', board_size = v_size, inicio_at = null, updated_at = now() where id = 1;
+  update game_state set fase = 'playing', inicio_at = null, updated_at = now() where id = 1;
 end;
 $$;
 
@@ -333,7 +380,7 @@ begin
     raise exception 'Solo el admin puede iniciar el bingo';
   end if;
 
-  select count(*) into v_count from pruebas where position is null and not libre;
+  select count(*) into v_count from pruebas where not libre;
   if v_count = 0 then
     raise exception 'No hay pruebas enviadas todavía';
   end if;
@@ -383,7 +430,7 @@ begin
     return false;
   end if;
 
-  select count(*) into v_count from pruebas where position is null and not libre;
+  select count(*) into v_count from pruebas where not libre;
   if v_count = 0 then
     return false;
   end if;
@@ -516,7 +563,9 @@ $$;
 
 grant execute on function completar_prueba(uuid, uuid, uuid) to anon;
 
--- Reiniciar partida (admin) - por si queréis repetir el juego
+-- Reiniciar el temporizador (admin): cancela la hora de inicio programada.
+-- No borra pruebas ni eventos: las posiciones ya están fijas desde que
+-- se crearon y no queremos perder el trabajo de todos por error.
 create or replace function reiniciar_bingo(p_player_id uuid)
 returns boolean
 language plpgsql
@@ -529,9 +578,7 @@ begin
   if v_role <> 'admin' then
     raise exception 'Solo el admin puede reiniciar';
   end if;
-  delete from pruebas where true;
-  delete from eventos where true;
-  update game_state set fase = 'submission', inicio_at = null, board_size = 25, updated_at = now() where id = 1;
+  update game_state set inicio_at = null, updated_at = now() where id = 1;
   return true;
 end;
 $$;
@@ -579,12 +626,17 @@ begin
     return;
   end if;
   if exists (select 1 from players p where p.pin = p_pin) then
-    return query select null::uuid, false, 'Ese PIN ya está en uso';
+    return query select null::uuid, false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.';
     return;
   end if;
-  insert into players(name, pin, avatar, role)
-  values (trim(p_name), p_pin, coalesce(nullif(p_avatar, ''), '🎉'), coalesce(p_role, 'player'))
-  returning players.id into v_new_id;
+  begin
+    insert into players(name, pin, avatar, role)
+    values (trim(p_name), p_pin, coalesce(nullif(p_avatar, ''), '🎉'), coalesce(p_role, 'player'))
+    returning players.id into v_new_id;
+  exception when unique_violation then
+    return query select null::uuid, false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.';
+    return;
+  end;
   return query select v_new_id, true, null::text;
 end;
 $$;
@@ -609,12 +661,17 @@ begin
     return;
   end if;
   if exists (select 1 from players p where p.pin = p_pin and p.id <> p_target_id) then
-    return query select false, 'Ese PIN ya está en uso por otra cuenta';
+    return query select false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.';
     return;
   end if;
-  update players
-    set name = trim(p_name), pin = p_pin, avatar = coalesce(nullif(p_avatar, ''), avatar), role = coalesce(p_role, role)
-    where id = p_target_id;
+  begin
+    update players
+      set name = trim(p_name), pin = p_pin, avatar = coalesce(nullif(p_avatar, ''), avatar), role = coalesce(p_role, role)
+      where id = p_target_id;
+  exception when unique_violation then
+    return query select false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.';
+    return;
+  end;
   return query select true, null::text;
 end;
 $$;

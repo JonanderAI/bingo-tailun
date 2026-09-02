@@ -3,12 +3,12 @@
 // ============================================================
 
 const SESSION_KEY = 'bingo_tailun_session';
-const MAX_PRUEBAS_POR_JUGADOR = 3;
+const MAX_PRUEBAS_POR_JUGADOR = 2;
 
 const state = {
   player: null, // { id, name, role, avatar }
   fase: 'submission',
-  boardSize: 25,
+  boardSize: 36,
   inicioAt: null, // fecha/hora programada de inicio (ISO) o null
   pruebas: [], // pruebas_publicas
   players: [], // players_publicos
@@ -302,15 +302,18 @@ function renderMiAportacion() {
 
   let listaHtml = '';
   if (mias.length > 0) {
-    listaHtml = `<ul class="simple-list simple-list-2l">${mias.map(p => `
-      <li>
-        <i class="fa-solid fa-scroll"></i>
-        <span class="li-texto">
+    listaHtml = `<div class="assign-list">${mias.map(p => `
+      <div class="assign-item">
+        <span class="assign-texto">
           <span class="li-titulo">${escapeHtml(p.texto)}</span>
           <span class="li-subtitulo">${estadoAportacion(p)}</span>
         </span>
-      </li>
-    `).join('')}</ul>`;
+        <span class="row-actions">
+          <button class="btn btn-ghost btn-small" data-editar-mi-prueba="${p.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-ghost btn-small" data-borrar-mi-prueba="${p.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+        </span>
+      </div>
+    `).join('')}</div>`;
   }
 
   let formHtml = '';
@@ -318,7 +321,7 @@ function renderMiAportacion() {
     formHtml = `
       <form id="prueba-form">
         <label class="field">
-          <textarea id="prueba-texto" rows="3" maxlength="200" placeholder="Ej: Bañarse en el río antes de las 12h..." required></textarea>
+          <textarea id="prueba-texto" rows="3" maxlength="200" placeholder="Ej: Beraza le pega un sopapo a alguien / Mikel pone una trampita..." required></textarea>
         </label>
         <button type="submit" class="btn btn-primary btn-block">
           <i class="fa-solid fa-paper-plane"></i> Enviar (${mias.length}/${MAX_PRUEBAS_POR_JUGADOR})
@@ -329,12 +332,62 @@ function renderMiAportacion() {
 
   cont.innerHTML = `
     <h3><i class="fa-solid fa-lightbulb"></i> Tus pruebas</h3>
-    <p class="subtitle small">Hasta ${MAX_PRUEBAS_POR_JUGADOR} pruebas por jugador. ¡Cuanto más random, mejor!</p>
+    <p class="subtitle small">Hasta ${MAX_PRUEBAS_POR_JUGADOR} pruebas por jugador.</p>
     ${listaHtml}
     ${formHtml}
   `;
 
   if (puedeAnadirMas) $('#prueba-form').addEventListener('submit', enviarPrueba);
+
+  cont.querySelectorAll('[data-editar-mi-prueba]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = mias.find(x => x.id === btn.dataset.editarMiPrueba);
+      if (p) abrirModalEditarMiPrueba(p);
+    });
+  });
+  cont.querySelectorAll('[data-borrar-mi-prueba]').forEach(btn => {
+    btn.addEventListener('click', () => borrarMiPrueba(btn.dataset.borrarMiPrueba));
+  });
+}
+
+function abrirModalEditarMiPrueba(p) {
+  abrirModal(`
+    <h3><i class="fa-solid fa-pen"></i> Editar tu prueba</h3>
+    <form id="form-mi-prueba">
+      <label class="field">
+        <textarea id="mp-texto" rows="3" maxlength="200" required>${escapeHtml(p.texto)}</textarea>
+      </label>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      <p id="mp-error" class="error-msg hidden"></p>
+    </form>
+  `);
+  $('#form-mi-prueba').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const texto = $('#mp-texto').value.trim();
+    if (!texto) return;
+    const { error } = await supabaseClient.rpc('editar_mi_prueba', {
+      p_player_id: state.player.id, p_prueba_id: p.id, p_texto: texto,
+    });
+    if (error) {
+      const errEl = $('#mp-error');
+      errEl.textContent = error.message;
+      errEl.classList.remove('hidden');
+      return;
+    }
+    cerrarModal();
+    mostrarToast('Prueba actualizada');
+    await cargarMisPruebas();
+    renderMiAportacion();
+  });
+}
+
+async function borrarMiPrueba(id) {
+  if (!confirm('¿Borrar esta prueba? No se puede deshacer.')) return;
+  const { error } = await supabaseClient.rpc('borrar_mi_prueba', { p_player_id: state.player.id, p_prueba_id: id });
+  if (error) { mostrarToast(error.message); return; }
+  mostrarToast('Prueba borrada');
+  await cargarMisPruebas();
+  renderMiAportacion();
 }
 
 async function enviarPrueba(e) {
@@ -390,31 +443,30 @@ function actualizarCuentaAtras() {
 function renderTablero() {
   const grid = $('#bingo-grid');
   const emptyMsg = $('#board-empty-msg');
+  const enSubmission = state.fase === 'submission';
 
   actualizarCuentaAtras();
-
-  if (state.fase === 'submission') {
-    emptyMsg.classList.toggle('hidden', !!state.inicioAt);
-    grid.innerHTML = '';
-    return;
-  }
-  $('#countdown-box').classList.add('hidden');
-  emptyMsg.classList.add('hidden');
+  emptyMsg.classList.toggle('hidden', !enSubmission || !!state.inicioAt);
 
   const lado = Math.round(Math.sqrt(state.boardSize));
+  grid.style.gridTemplateColumns = `repeat(${lado}, 1fr)`;
+  grid.classList.toggle('grid-bloqueado', enSubmission);
   grid.innerHTML = '';
 
   // Filas/columnas ya completadas (línea), para marcarlas visualmente.
-  const conPosicion = state.pruebas.filter(p => p.position !== null);
+  // Solo aplica una vez empezado el juego.
   const filasCompletas = new Set();
   const colsCompletas = new Set();
-  for (let f = 0; f < lado; f++) {
-    const celdas = conPosicion.filter(p => Math.floor(p.position / lado) === f);
-    if (celdas.length === lado && celdas.every(p => p.completada)) filasCompletas.add(f);
-  }
-  for (let c = 0; c < lado; c++) {
-    const celdas = conPosicion.filter(p => p.position % lado === c);
-    if (celdas.length === lado && celdas.every(p => p.completada)) colsCompletas.add(c);
+  if (!enSubmission) {
+    const conPosicion = state.pruebas.filter(p => p.position !== null);
+    for (let f = 0; f < lado; f++) {
+      const celdas = conPosicion.filter(p => Math.floor(p.position / lado) === f);
+      if (celdas.length === lado && celdas.every(p => p.completada)) filasCompletas.add(f);
+    }
+    for (let c = 0; c < lado; c++) {
+      const celdas = conPosicion.filter(p => p.position % lado === c);
+      if (celdas.length === lado && celdas.every(p => p.completada)) colsCompletas.add(c);
+    }
   }
 
   for (let i = 0; i < state.boardSize; i++) {
@@ -424,6 +476,25 @@ function renderTablero() {
     cell.dataset.position = i;
     if (filasCompletas.has(Math.floor(i / lado)) || colsCompletas.has(i % lado)) {
       cell.classList.add('en-linea');
+    }
+
+    // Fase de envíos: el tablero ya se ve, pero bloqueado (nada que
+    // destapar todavía). Cada casilla ocupada muestra solo el avatar de
+    // quien mandó esa prueba, sin texto.
+    if (enSubmission) {
+      cell.classList.add('hidden-cell');
+      if (!prueba) {
+        cell.innerHTML = `<i class="fa-solid fa-dice cell-icon-bg"></i>`;
+      } else {
+        cell.innerHTML = `
+          <span class="lock-wrap">
+            <i class="fa-solid fa-lock cell-lock-icon"></i>
+            <span class="cell-emoji-inside">${escapeHtml(avatarDe(prueba.submitted_by))}</span>
+          </span>
+        `;
+      }
+      grid.appendChild(cell);
+      continue;
     }
 
     if (!prueba) {
@@ -510,13 +581,9 @@ async function abrirCelda(prueba, ev) {
     // van juntos), pero se deja por si una prueba se queda a medias.
     let acciones = '';
     if (autorizado) {
-      const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
       acciones = `
         <div class="modal-actions">
-          <label class="field"><span><i class="fa-solid fa-user-check"></i> ¿Quién ha sido el involucrado?</span>
-            <select id="select-cumplidor">${opciones}</select>
-          </label>
-          <button class="btn btn-primary btn-block" id="btn-marcar-cumplida">
+          <button class="btn btn-primary btn-block" id="btn-ha-pasado">
             <i class="fa-solid fa-champagne-glasses"></i> Marcar cumplida
           </button>
         </div>
@@ -528,10 +595,7 @@ async function abrirCelda(prueba, ev) {
       ${acciones}
     `);
     if (autorizado) {
-      $('#btn-marcar-cumplida').addEventListener('click', async () => {
-        const cumplidorId = $('#select-cumplidor').value;
-        await marcarCumplida(prueba.id, cumplidorId);
-      });
+      $('#btn-ha-pasado').addEventListener('click', () => abrirModalElegirResponsable(prueba.id));
     }
     return;
   }
@@ -563,23 +627,35 @@ async function abrirCelda(prueba, ev) {
     return;
   }
 
-  const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
   abrirModal(`
     <h3><i class="fa-solid fa-eye"></i> Vista privada</h3>
     <p class="modal-texto">${escapeHtml(texto)}</p>
     <p class="modal-meta"><i class="fa-solid fa-circle-info"></i> Solo se destapa cuando ya ha pasado.</p>
     <div class="modal-actions">
-      <label class="field"><span><i class="fa-solid fa-user-check"></i> ¿Quién ha sido el involucrado?</span>
+      <button class="btn btn-accent btn-block" id="btn-ha-pasado">
+        <i class="fa-solid fa-champagne-glasses"></i> Ha pasado: destapar
+      </button>
+    </div>
+  `);
+  $('#btn-ha-pasado').addEventListener('click', () => abrirModalElegirResponsable(prueba.id));
+}
+
+function abrirModalElegirResponsable(pruebaId) {
+  const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
+  abrirModal(`
+    <h3><i class="fa-solid fa-user-check"></i> ¿Quién ha sido el involucrado?</h3>
+    <div class="modal-actions">
+      <label class="field">
         <select id="select-cumplidor">${opciones}</select>
       </label>
-      <button class="btn btn-accent btn-block" id="btn-marcar-cumplida">
-        <i class="fa-solid fa-champagne-glasses"></i> Ha pasado: mostrar y marcar cumplida
+      <button class="btn btn-primary btn-block" id="btn-marcar-cumplida">
+        <i class="fa-solid fa-champagne-glasses"></i> Destapar y marcar cumplida
       </button>
     </div>
   `);
   $('#btn-marcar-cumplida').addEventListener('click', async () => {
     const cumplidorId = $('#select-cumplidor').value;
-    await marcarCumplida(prueba.id, cumplidorId);
+    await marcarCumplida(pruebaId, cumplidorId);
   });
 }
 
@@ -651,10 +727,10 @@ function initAdminActions() {
   });
 
   $('#btn-reiniciar-bingo').addEventListener('click', async () => {
-    if (!confirm('Esto borra todas las pruebas y eventos. ¿Seguro?')) return;
+    if (!confirm('¿Cancelar la cuenta atrás programada?')) return;
     const { error } = await supabaseClient.rpc('reiniciar_bingo', { p_player_id: state.player.id });
     if (error) { mostrarToast(error.message); return; }
-    mostrarToast('Partida reiniciada');
+    mostrarToast('Cuenta atrás reiniciada');
   });
 
   $('#btn-crear-usuario').addEventListener('click', abrirModalCrearUsuario);
@@ -893,6 +969,13 @@ function abrirModalEditarUsuario(u) {
     }
     cerrarModal();
     mostrarToast('Usuario actualizado');
+    // Si el admin se edita a sí mismo (p.ej. cambia su emoji), que se
+    // refleje al momento en su propia ficha de la cabecera.
+    if (u.id === state.player.id) {
+      state.player = { ...state.player, name, avatar: avatar || state.player.avatar, role };
+      guardarSesion(state.player);
+      renderHeader();
+    }
     await refrescarTrasCambioUsuarios();
   });
 }

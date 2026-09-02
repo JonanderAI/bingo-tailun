@@ -66,6 +66,7 @@ h1, h2, h3, .brand-name {
 }
 
 h1, h2, h3 { margin-top: 0; margin-bottom: 8px; }
+h2 i, h3 i { margin-right: 8px; }
 
 .hidden { display: none !important; }
 
@@ -409,6 +410,9 @@ select option {
 .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 
 .admin-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.admin-actions .btn { flex: 1; }
+
+input[type="datetime-local"] { width: 100%; }
 
 .error-msg { color: var(--danger); font-weight: 700; margin-top: 8px; font-size: 0.9rem; }
 .notice {
@@ -493,28 +497,31 @@ select option {
 .fase-badge.playing { color: var(--success-text); background: rgba(23, 195, 178, 0.12); border-color: var(--accent-2); }
 .fase-badge.finished { color: var(--primary-dark); background: rgba(255, 79, 168, 0.12); border-color: var(--primary); }
 
+.board-card { display: flex; flex-direction: column; gap: 16px; }
+
 .countdown-box {
-  margin-top: 16px;
   padding: 18px;
   border-radius: 16px;
   text-align: center;
   background: var(--bg-soft);
   border: 2px solid var(--violet);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .countdown-label {
-  display: block;
   font-size: 0.8rem;
   font-weight: 800;
+  line-height: 1;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 6px;
 }
 .countdown-timer {
-  display: block;
   font-family: 'Baloo 2', sans-serif;
   font-size: 2rem;
   font-weight: 800;
+  line-height: 1;
   color: var(--primary);
   letter-spacing: 0.03em;
   animation: countdown-pulse 1.6s ease-in-out infinite;
@@ -527,9 +534,8 @@ select option {
 
 .bingo-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* grid-template-columns se fija por JS según el lado real del tablero */
   gap: 8px;
-  margin-top: 16px;
 }
 
 .bingo-cell {
@@ -611,6 +617,10 @@ select option {
 .bingo-cell.libre-cell .cell-icon-bg { color: var(--accent); }
 
 .bingo-cell.en-linea { border: 2px solid var(--success); }
+
+/* Fase de envíos: tablero visible pero bloqueado, nada que destapar todavía */
+.bingo-grid.grid-bloqueado .bingo-cell { cursor: default; }
+.bingo-grid.grid-bloqueado .bingo-cell:active { transform: none; }
 
 .regla-item {
   display: flex;

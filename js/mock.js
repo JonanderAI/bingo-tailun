@@ -54,28 +54,22 @@ function crearClienteMock() {
     completada_at: null,
   }));
 
-  const gameState = { id: 1, fase: 'playing', board_size: 25, inicio_at: null, updated_at: new Date().toISOString() };
+  const gameState = { id: 1, fase: 'playing', board_size: 36, inicio_at: null, updated_at: new Date().toISOString() };
   const eventos = [];
 
-  // Calcula el lado del tablero más pequeño que cabe con todas las
-  // pruebas + 1 comodín central, igual que hace iniciar_bingo() en SQL.
-  function repartirTablero() {
-    const sinAsignar = pruebas.filter(p => p.position === null && !p.libre);
-    const count = sinAsignar.length;
-    // Cuadrado exacto: si las pruebas encajan justas (ej. 16 -> 4x4) no
-    // hay comodín; si sobra un hueco (ej. 15 -> 4x4) va un comodín centrado.
-    const side = Math.max(3, Math.ceil(Math.sqrt(count)));
-    const size = side * side;
-    const centro = Math.floor(size / 2);
-    const hayComodin = size > count;
-
-    if (hayComodin) {
+  // Tablero fijo de 6x6 (36 casillas). Rellena con comodines las
+  // casillas que no tengan ya una prueba asignada (las pruebas reciben
+  // su posición al crearse, no aquí), igual que _repartir_y_empezar() en SQL.
+  function rellenarComodines() {
+    const ocupadas = new Set(pruebas.filter(p => p.position !== null).map(p => p.position));
+    for (let i = 0; i < 36; i++) {
+      if (ocupadas.has(i)) continue;
       pruebas.push({
         id: uid('comodin'),
         texto: 'Comodín',
         submitted_by: null,
         responsable_id: null,
-        position: centro,
+        position: i,
         libre: true,
         revealed: true,
         completada: true,
@@ -85,22 +79,15 @@ function crearClienteMock() {
         completada_at: new Date().toISOString(),
       });
     }
-
-    const shuffled = [...sinAsignar].sort(() => Math.random() - 0.5);
-    let pos = 0;
-    shuffled.forEach((p) => {
-      if (hayComodin && pos === centro) pos++;
-      p.position = pos;
-      pos++;
-    });
-
-    gameState.board_size = size;
+    gameState.board_size = 36;
   }
 
   // Estado inicial "de escaparate": tablero ya repartido con algunas
   // pruebas ocultas, otras activas y un par cumplidas, para ver los
   // distintos estilos de casilla de un vistazo.
-  repartirTablero();
+  const posicionesAlAzar = Array.from({ length: 36 }, (_, i) => i).sort(() => Math.random() - 0.5);
+  pruebas.forEach((p, i) => { p.position = posicionesAlAzar[i]; });
+  rellenarComodines();
   pruebas.forEach((p, i) => {
     if (p.libre || p.position === null) return;
     if (i % 5 === 0) {
@@ -179,10 +166,15 @@ function crearClienteMock() {
 
     crear_prueba: ({ p_player_id, p_texto }) => {
       if (gameState.fase !== 'submission') return fail('Ya no se pueden enviar pruebas, el bingo ha empezado');
-      if (pruebas.filter(p => p.submitted_by === p_player_id).length >= 3) return fail('Máximo 3 pruebas por jugador');
+      if (pruebas.filter(p => p.submitted_by === p_player_id).length >= 2) return fail('Máximo 2 pruebas por jugador');
+      const ocupadas = new Set(pruebas.filter(p => p.position !== null).map(p => p.position));
+      const libres = [];
+      for (let i = 0; i < 36; i++) if (!ocupadas.has(i)) libres.push(i);
+      if (libres.length === 0) return fail('No quedan casillas libres en el tablero');
+      const pos = libres[Math.floor(Math.random() * libres.length)];
       pruebas.push({
         id: uid('prueba'), texto: (p_texto || '').trim(), submitted_by: p_player_id, responsable_id: null,
-        position: null, libre: false, revealed: false, completada: false, completada_por: null,
+        position: pos, libre: false, revealed: false, completada: false, completada_por: null,
         created_at: new Date().toISOString(), revealed_at: null, completada_at: null,
       });
       emit('pruebas', {});
@@ -191,6 +183,25 @@ function crearClienteMock() {
 
     mi_prueba: ({ p_player_id }) => {
       return ok(pruebas.filter(p => p.submitted_by === p_player_id).map(p => ({ ...p })));
+    },
+
+    editar_mi_prueba: ({ p_player_id, p_prueba_id, p_texto }) => {
+      if (gameState.fase !== 'submission') return fail('Ya no se pueden editar pruebas, el bingo ha empezado');
+      const prueba = pruebas.find(p => p.id === p_prueba_id);
+      if (!prueba || prueba.submitted_by !== p_player_id) return fail('No autorizado');
+      prueba.texto = (p_texto || '').trim();
+      emit('pruebas', {});
+      return ok(true);
+    },
+
+    borrar_mi_prueba: ({ p_player_id, p_prueba_id }) => {
+      if (gameState.fase !== 'submission') return fail('Ya no se pueden borrar pruebas, el bingo ha empezado');
+      const prueba = pruebas.find(p => p.id === p_prueba_id);
+      if (!prueba || prueba.submitted_by !== p_player_id) return fail('No autorizado');
+      const idx = pruebas.findIndex(p => p.id === p_prueba_id);
+      pruebas.splice(idx, 1);
+      emit('pruebas', {});
+      return ok(true);
     },
 
     ver_prueba_oculta: ({ p_prueba_id, p_player_id }) => {
@@ -257,10 +268,10 @@ function crearClienteMock() {
     iniciar_bingo: ({ p_player_id }) => {
       const player = players.find(p => p.id === p_player_id);
       if (!player || player.role !== 'admin') return fail('Solo el admin puede iniciar el bingo');
-      if (pruebas.filter(p => p.position === null && !p.libre).length === 0 && gameState.fase === 'submission') {
+      if (pruebas.filter(p => !p.libre).length === 0 && gameState.fase === 'submission') {
         return fail('No hay pruebas enviadas todavía');
       }
-      repartirTablero();
+      rellenarComodines();
       gameState.fase = 'playing';
       gameState.inicio_at = null;
       gameState.updated_at = new Date().toISOString();
@@ -281,8 +292,8 @@ function crearClienteMock() {
     comprobar_inicio_programado: () => {
       if (gameState.fase !== 'submission' || !gameState.inicio_at) return ok(false);
       if (new Date() < new Date(gameState.inicio_at)) return ok(false);
-      if (pruebas.filter(p => p.position === null && !p.libre).length === 0) return ok(false);
-      repartirTablero();
+      if (pruebas.filter(p => !p.libre).length === 0) return ok(false);
+      rellenarComodines();
       gameState.fase = 'playing';
       gameState.inicio_at = null;
       gameState.updated_at = new Date().toISOString();
@@ -294,13 +305,8 @@ function crearClienteMock() {
     reiniciar_bingo: ({ p_player_id }) => {
       const player = players.find(p => p.id === p_player_id);
       if (!player || player.role !== 'admin') return fail('Solo el admin puede reiniciar');
-      pruebas = [];
-      eventos.length = 0;
-      gameState.fase = 'submission';
       gameState.inicio_at = null;
-      gameState.board_size = 25;
       gameState.updated_at = new Date().toISOString();
-      emit('pruebas', {});
       emit('game_state', {});
       return ok(true);
     },

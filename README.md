@@ -2,20 +2,23 @@
 
 Bingo de pruebas para el finde. Cada uno se da de alta con su nombre y un
 PIN de 6 dígitos (le asignamos un avatar emoji al azar), y propone hasta
-3 pruebas ("su aportación") que se puedan cumplir ese finde. El admin
-programa la fecha y hora de inicio (sin pulsar ningún botón "arrancar"):
-en cuanto llega esa hora, el bingo empieza solo y las pruebas se reparten
-al azar por un tablero (con un comodín en el centro), ocultas. Cualquier
-admin puede verlas y habilitarlas cuando pasan: entonces se muestran a
-todo el mundo y beben el cumplidor y el admin que lo gestiona. Cuando se
-completa una línea o el tablero entero, bebéis todos.
+2 pruebas ("su aportación") que se puedan cumplir ese finde. Al crear
+cada prueba se le asigna al momento una casilla al azar en el tablero,
+fijo de 6x6 (36 casillas), y esa posición ya no cambia. El admin programa
+la fecha y hora de inicio (sin pulsar ningún botón "arrancar"): en cuanto
+llega esa hora, el bingo empieza solo, rellenando con comodines las
+casillas que se hayan quedado sin prueba. El admin o quien mandó cada
+prueba puede destaparla cuando pasa (eligiendo antes quién ha sido el
+involucrado): entonces se muestra a todo el mundo y beben el involucrado y
+quien la destapó. Cuando se completa una línea o el tablero entero, bebéis
+todos.
 
 Es una PWA instalable: al entrar o crear cuenta se ofrece instalarla
 (Android/Chrome); en iPhone/iPad, el botón de instalar de la cabecera
 explica cómo hacerlo desde Compartir → Añadir a pantalla de inicio. Se
 instala como **Tailún el malvado** con icono 😈.
 
-Tema oscuro festivo fijo, todo el rato. Paleta amarillo/violeta/magenta.
+Tema oscuro festivo fijo, todo el rato. Paleta rosa/violeta/azul, sin amarillo.
 
 ## 1. Crear el proyecto en Supabase
 
@@ -69,24 +72,32 @@ caché del navegador y de la CDN de GitHub Pages.
   "Entrar" solo pide el PIN: como es único, es tu identificador (no hace
   falta el nombre para volver a entrar).
 - **Tu aportación**: la pantalla principal es el tablero; debajo tienes tu
-  propia tarjeta para enviar hasta 3 pruebas y ver su estado (guardada,
-  oculta, activa o cumplida). Solo tú ves el texto de tus propias pruebas
+  propia tarjeta para enviar hasta 2 pruebas y ver su estado (guardada,
+  oculta, activa o cumplida), y puedes editarlas o borrarlas mientras el
+  bingo no haya empezado. Solo tú ves el texto de tus propias pruebas
   mientras están ocultas para el resto.
-- **Inicio programado**: el admin fija fecha y hora en su panel; el
-  tablero muestra una cuenta atrás mientras se espera. Al llegar la hora
-  (y si hay al menos una prueba enviada), el bingo arranca solo — lo
-  dispara cualquier cliente conectado, no hace falta que el admin esté
-  mirando la pantalla en ese momento.
-- **Cualquier admin, cualquier prueba**: no hay encargados fijos por
-  prueba. Cualquier cuenta con rol admin puede ver el contenido oculto de
-  cualquier casilla, habilitarla ("Habilitar para todos" → lluvia de
-  emojis 🧨🔥😈🦀🦭) y marcarla cumplida.
-- **Cumplir una prueba**: el admin que la marca elige quién la cumplió →
-  chupito para el cumplidor y para ese admin (aviso para todos).
+- **Tablero visible desde el principio**: aunque el bingo no haya
+  empezado, ya se ve el tablero de 6x6 bloqueado, con el avatar de quien
+  mandó cada prueba en su casilla (sin desvelar el texto), y la cuenta
+  atrás encima.
+- **Inicio programado**: el admin fija fecha y hora en su panel; al llegar
+  la hora (y si hay al menos una prueba enviada), el bingo arranca solo —
+  lo dispara cualquier cliente conectado, no hace falta que el admin esté
+  mirando la pantalla en ese momento. Las casillas que se queden sin
+  prueba se rellenan con comodines (ya cumplidos de fábrica).
+- **Admin o propietario, cada prueba**: no hay encargados fijos por
+  prueba. Cualquier cuenta con rol admin, o quien la mandó, puede
+  destaparla cuando pasa: se pulsa "Ha pasado", se elige en un segundo
+  paso quién ha sido el involucrado, y se marca cumplida a la vez → lluvia
+  de emojis 🧨🔥😈🦀🦭 para todo el mundo.
+- **Cumplir una prueba**: chupito para el involucrado elegido y para quien
+  la destapó (aviso para todos).
 - **Línea / Bingo**: se detecta automáticamente al completar una fila,
   columna o el tablero entero → aviso de "todos bebéis" para todo el mundo.
 - **Usuarios (admin)**: ver, crear, editar (incluido el rol, para hacer
   admin a alguien más) y borrar cuentas.
+- **Reiniciar (admin)**: el botón de reiniciar solo cancela la cuenta
+  atrás programada; no borra pruebas ni eventos.
 - Todo se sincroniza en tiempo real entre todos los móviles (Supabase Realtime).
 
 ## Estructura
