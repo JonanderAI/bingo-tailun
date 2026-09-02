@@ -484,6 +484,9 @@ function renderTablero() {
     if (filasCompletas.has(Math.floor(i / lado)) || colsCompletas.has(i % lado)) {
       cell.classList.add('en-linea');
     }
+    if (prueba && prueba.submitted_by === state.player.id) {
+      cell.classList.add('mia');
+    }
 
     // Fase de envíos: el tablero ya se ve, pero bloqueado (nada que
     // destapar todavía). Cada casilla ocupada muestra solo el avatar de

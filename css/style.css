@@ -633,6 +633,24 @@ select option {
 
 .bingo-cell.en-linea { border-color: var(--success); }
 
+/* Punto en tus propias pruebas, para identificarlas de un vistazo: del
+   mismo color que el borde de esa casilla en cada estado. */
+.bingo-cell.mia::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 2;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--card-border);
+}
+.bingo-cell.puede-ver.mia::after { background: var(--accent); }
+.bingo-cell.revealed-cell.mia::after { background: var(--accent-2); }
+.bingo-cell.completed-cell.mia::after { background: var(--primary); }
+.bingo-cell.en-linea.mia::after { background: var(--success); }
+
 /* Fase de envíos: tablero visible pero bloqueado, nada que destapar todavía */
 .bingo-grid.grid-bloqueado .bingo-cell { cursor: default; }
 .bingo-grid.grid-bloqueado .bingo-cell:active { transform: none; }
