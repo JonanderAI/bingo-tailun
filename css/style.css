@@ -684,8 +684,6 @@ select option {
 .bingo-cell.puede-ver.mia::after { background: var(--accent); }
 
 /* Fase de envíos: tablero visible pero bloqueado, nada que destapar todavía */
-.bingo-grid.grid-bloqueado .bingo-cell { cursor: default; }
-.bingo-grid.grid-bloqueado .bingo-cell:active { transform: none; }
 
 /* Barra que une visualmente las casillas de una línea completada, de
    punta a punta (dimensiones puestas por JS en base a la posición real

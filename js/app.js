@@ -560,6 +560,7 @@ function renderTablero() {
       cell.classList.add('hidden-cell');
       if (!prueba) {
         cell.innerHTML = `<i class="fa-solid fa-bomb cell-icon-bg cell-icon-vacia"></i>`;
+        cell.addEventListener('click', () => abrirCeldaSubmission(null));
       } else {
         cell.innerHTML = `
           <span class="lock-wrap">
@@ -567,6 +568,7 @@ function renderTablero() {
             <span class="cell-emoji-inside">${escapeHtml(avatarDe(prueba.submitted_by))}</span>
           </span>
         `;
+        cell.addEventListener('click', () => abrirCeldaSubmission(prueba));
       }
       grid.appendChild(cell);
       continue;
@@ -738,6 +740,23 @@ function cerrarModal() {
     overlay.classList.remove('closing');
     $('#modal-content').innerHTML = '';
   }, 150);
+}
+
+// Antes de que empiece el bingo el tablero ya se ve, bloqueado: al
+// tocar una casilla solo se dice de quién es (o si sigue libre), nunca
+// el texto de la prueba.
+function abrirCeldaSubmission(prueba) {
+  if (!prueba) {
+    abrirModal(`
+      <h3><i class="fa-solid fa-dice"></i> Casilla libre</h3>
+      <p class="modal-texto">Todavía no tiene ninguna prueba asignada.</p>
+    `);
+    return;
+  }
+  abrirModal(`
+    <div class="modal-emoji-header">${escapeHtml(avatarDe(prueba.submitted_by))}</div>
+    <h3>Prueba de ${escapeHtml(nombreDe(prueba.submitted_by))}</h3>
+  `);
 }
 
 async function abrirCelda(prueba, ev) {
