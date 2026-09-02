@@ -823,8 +823,10 @@ $$;
 
 grant execute on function admin_borrar_jugador(uuid, uuid) to anon;
 
--- Editar el texto de una prueba ya enviada
-create or replace function admin_editar_prueba(p_player_id uuid, p_prueba_id uuid, p_texto text)
+-- Editar el texto (y opcionalmente la foto) de una prueba ya enviada
+drop function if exists admin_editar_prueba(uuid, uuid, text);
+
+create or replace function admin_editar_prueba(p_player_id uuid, p_prueba_id uuid, p_texto text, p_foto_url text default null)
 returns boolean
 language plpgsql
 security definer
@@ -836,12 +838,14 @@ begin
   if v_role <> 'admin' then
     raise exception 'No autorizado';
   end if;
-  update pruebas set texto = capitaliza_texto(p_texto) where id = p_prueba_id and not libre;
+  update pruebas
+    set texto = capitaliza_texto(p_texto), foto_url = coalesce(p_foto_url, foto_url)
+    where id = p_prueba_id and not libre;
   return true;
 end;
 $$;
 
-grant execute on function admin_editar_prueba(uuid, uuid, text) to anon;
+grant execute on function admin_editar_prueba(uuid, uuid, text, text) to anon;
 
 -- Borrar una prueba enviada. Si el bingo ya ha empezado, no se borra la
 -- fila (dejaría la casilla vacía y descuadraría el tablero): se

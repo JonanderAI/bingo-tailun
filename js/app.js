@@ -1138,22 +1138,41 @@ function renderPruebasAdmin(lista) {
 }
 
 function abrirModalEditarPrueba(p) {
+  let fotoSeleccionada = null;
   abrirModal(`
     <h3><i class="fa-solid fa-pen"></i> Editar prueba</h3>
     <form id="form-prueba-admin">
       <label class="field">
         <textarea id="pa-texto" rows="3" maxlength="200" required>${escapeHtml(p.texto)}</textarea>
       </label>
+      <label class="field">
+        <span><i class="fa-solid fa-camera"></i> Foto de recuerdo (opcional)</span>
+        <label for="pa-foto" class="btn btn-ghost btn-block foto-picker-btn">
+          <i class="fa-solid fa-camera"></i> ${p.foto_url ? 'Cambiar foto' : 'Sacar foto / elegir archivo'}
+        </label>
+        <input type="file" id="pa-foto" accept="image/*" capture="environment" class="foto-input-oculto" />
+      </label>
+      <div id="pa-foto-preview-wrap" class="foto-preview-wrap ${p.foto_url ? '' : 'hidden'}">
+        <img id="pa-foto-preview-img" class="foto-preview-img" alt="" src="${p.foto_url ? escapeHtml(p.foto_url) : ''}" />
+      </div>
       <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
       <p id="pa-error" class="error-msg hidden"></p>
     </form>
   `);
+  $('#pa-foto').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    fotoSeleccionada = file;
+    $('#pa-foto-preview-img').src = URL.createObjectURL(file);
+    $('#pa-foto-preview-wrap').classList.remove('hidden');
+  });
   $('#form-prueba-admin').addEventListener('submit', async (e) => {
     e.preventDefault();
     const texto = $('#pa-texto').value.trim();
     if (!texto) return;
+    const fotoUrl = fotoSeleccionada ? await subirFotoRecuerdo(p.id, fotoSeleccionada) : null;
     const { error } = await supabaseClient.rpc('admin_editar_prueba', {
-      p_player_id: state.player.id, p_prueba_id: p.id, p_texto: texto,
+      p_player_id: state.player.id, p_prueba_id: p.id, p_texto: texto, p_foto_url: fotoUrl,
     });
     if (error) {
       const errEl = $('#pa-error');

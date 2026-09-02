@@ -148,6 +148,7 @@ h2 i, h3 i { margin-right: 8px; }
   cursor: pointer;
 }
 .user-avatar { font-size: 1.15rem; line-height: 1; }
+#user-name-label { padding-right: 3px; }
 
 .user-menu {
   position: absolute;
@@ -216,8 +217,10 @@ h2 i, h3 i { margin-right: 8px; }
   cursor: pointer;
   padding: 4px;
   border-radius: 8px;
+  transition: color 0.15s ease, transform 0.15s ease;
 }
 .icon-btn:hover { color: var(--danger); }
+.icon-btn:active { transform: scale(0.88); }
 
 /* ---------- Layout ---------- */
 
@@ -237,7 +240,12 @@ body.has-tabs #app-root {
 }
 
 .view { display: none; }
-.view.active { display: block; }
+.view.active { display: block; animation: view-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 #view-login.active {
   flex: 1;
@@ -481,9 +489,12 @@ select option {
   font-weight: 800;
   border-radius: 14px;
   cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, transform 0.12s ease;
 }
-.tab-btn i { font-size: 1.15rem; }
+.tab-btn i { font-size: 1.15rem; transition: transform 0.2s ease; }
 .tab-btn.active { color: var(--primary); background: rgba(255, 79, 168, 0.12); }
+.tab-btn.active i { transform: translateY(-2px) scale(1.1); }
+.tab-btn:active { transform: scale(0.92); }
 
 /* ---------- Lista de pruebas enviadas ---------- */
 
@@ -817,7 +828,9 @@ select option {
   cursor: pointer;
   padding: 0;
   background: var(--bg-soft);
+  transition: transform 0.12s ease;
 }
+.galeria-item:active { transform: scale(0.93); }
 .galeria-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .galeria-foto-wrap {

@@ -242,12 +242,13 @@ function crearClienteMock() {
       return ok(pruebas.map(p => ({ ...p })));
     },
 
-    admin_editar_prueba: ({ p_player_id, p_prueba_id, p_texto }) => {
+    admin_editar_prueba: ({ p_player_id, p_prueba_id, p_texto, p_foto_url }) => {
       const player = players.find(p => p.id === p_player_id);
       if (!player || player.role !== 'admin') return fail('No autorizado');
       const prueba = pruebas.find(p => p.id === p_prueba_id && !p.libre);
       if (!prueba) return fail('No encontrada');
       prueba.texto = capitalizaTexto(p_texto);
+      if (p_foto_url) prueba.foto_url = p_foto_url;
       emit('pruebas', {});
       return ok(true);
     },
