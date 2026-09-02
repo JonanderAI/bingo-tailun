@@ -104,8 +104,19 @@ function cambiarVista(id) {
   $('#app-header').classList.toggle('hidden', id === 'view-login');
 }
 
+const ICONOS_CARGA = ['pizza-slice', 'beer-mug-empty', 'bomb', 'poo', 'yin-yang', 'burger', 'trophy', 'futbol'];
+
 function mostrarCargando(mostrar) {
-  $('#loading-overlay')?.classList.toggle('hidden', !mostrar);
+  const overlay = $('#loading-overlay');
+  if (!overlay) return;
+  if (mostrar) {
+    const icono = ICONOS_CARGA[Math.floor(Math.random() * ICONOS_CARGA.length)];
+    overlay.querySelector('i').className = `fa-solid fa-${icono}`;
+    overlay.classList.remove('hidden', 'fade-out');
+  } else {
+    overlay.classList.add('fade-out');
+    setTimeout(() => overlay.classList.add('hidden'), 400);
+  }
 }
 
 // ---------- login / registro ----------
