@@ -164,6 +164,10 @@ begin
   if exists (select 1 from players p where lower(p.name) = lower(p_name)) then
     return query select null::uuid, null::text, null::text, null::text, false, 'Ya existe una cuenta con ese nombre'::text;
   end if;
+  if p_pin in ('123456', '654321') then
+    return query select null::uuid, null::text, null::text, null::text, false, 'Pon un PIN más seguro, subnormal'::text;
+    return;
+  end if;
   if exists (select 1 from players p where p.pin = p_pin) then
     return query select null::uuid, null::text, null::text, null::text, false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.'::text;
     return;
@@ -286,7 +290,7 @@ begin
     return;
   end if;
   if p_pin_nuevo in ('123456', '654321') then
-    return query select false, 'Ese PIN es demasiado obvio, elige otro'::text;
+    return query select false, 'Pon un PIN más seguro, subnormal'::text;
     return;
   end if;
   begin

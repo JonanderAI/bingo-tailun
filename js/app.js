@@ -192,6 +192,11 @@ function initRegistroForm() {
       errorEl.classList.remove('hidden');
       return;
     }
+    if (pin === '123456' || pin === '654321') {
+      errorEl.textContent = 'Pon un PIN más seguro, subnormal.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
 
     const btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
@@ -238,7 +243,7 @@ function abrirModalCambiarPin() {
       return;
     }
     if (pin === '123456' || pin === '654321') {
-      errEl.textContent = 'Ese PIN es demasiado obvio, elige otro.';
+      errEl.textContent = 'Pon un PIN más seguro, subnormal.';
       errEl.classList.remove('hidden');
       return;
     }

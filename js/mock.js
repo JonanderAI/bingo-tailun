@@ -155,6 +155,9 @@ function crearClienteMock() {
       if (players.some(pl => pl.name.toLowerCase() === nombre.toLowerCase())) {
         return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'Ya existe una cuenta con ese nombre' }]);
       }
+      if (['123456', '654321'].includes(p_pin)) {
+        return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'Pon un PIN más seguro, subnormal' }]);
+      }
       if (players.some(pl => pl.pin === p_pin)) {
         return ok([{ id: null, name: null, avatar: null, role: null, ok: false, error: 'Ese PIN ya está en uso, elige otro' }]);
       }
@@ -206,7 +209,7 @@ function crearClienteMock() {
 
     cambiar_mi_pin: ({ p_player_id, p_pin_nuevo }) => {
       if (!/^[0-9]{6}$/.test(p_pin_nuevo)) return ok([{ ok: false, error: 'El PIN debe tener 6 dígitos' }]);
-      if (['123456', '654321'].includes(p_pin_nuevo)) return ok([{ ok: false, error: 'Ese PIN es demasiado obvio, elige otro' }]);
+      if (['123456', '654321'].includes(p_pin_nuevo)) return ok([{ ok: false, error: 'Pon un PIN más seguro, subnormal' }]);
       if (players.some(pl => pl.id !== p_player_id && pl.pin === p_pin_nuevo)) {
         return ok([{ ok: false, error: 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.' }]);
       }
