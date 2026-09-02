@@ -1146,6 +1146,16 @@ async function arrancarApp(player) {
 
   initRealtime();
   iniciarComprobacionInicio();
+
+  // Las barras de línea se miden en píxeles reales justo al montar las
+  // celdas; si en ese momento las fuentes (Baloo 2/Nunito/Font Awesome)
+  // todavía no habían terminado de cargar, el tamaño de las celdas
+  // cambia un poco al aplicarse y las barras se quedan desplazadas.
+  // Repetimos el cálculo en cuanto las fuentes están listas de verdad.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => renderTablero());
+  }
+  window.addEventListener('resize', renderTablero);
 }
 
 // Cuenta atrás visual + comprobación real de si ya toca empezar, ambas
