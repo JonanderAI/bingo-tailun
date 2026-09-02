@@ -508,6 +508,7 @@ select option {
 .li-titulo { font-weight: 800; font-size: 0.95rem; color: var(--text); }
 .li-subtitulo { font-size: 0.78rem; font-weight: 700; color: var(--text-dim); display: flex; align-items: center; gap: 5px; }
 .li-subtitulo strong { color: var(--text); }
+.conteo-pruebas { color: var(--text-dim); font-weight: 700; font-size: 0.85em; }
 
 /* ---------- Tablero de bingo ---------- */
 

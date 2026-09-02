@@ -17,6 +17,8 @@ const state = {
   pruebas: [], // pruebas_publicas
   players: [], // players_publicos
   misPruebas: [], // mis propias aportaciones (texto siempre visible para mí, hasta 3)
+  pruebasAdmin: [], // todas las pruebas, solo para el admin
+  usuariosAdmin: [], // todos los jugadores con su PIN, solo para el admin
 };
 
 // ---------- instalar como app (PWA) ----------
@@ -1046,7 +1048,9 @@ async function cargarPruebasAdmin() {
     $('#admin-pruebas').innerHTML = `<p class="notice"><i class="fa-solid fa-triangle-exclamation"></i> ${error.message}</p>`;
     return;
   }
-  renderPruebasAdmin((data || []).filter(p => !p.libre));
+  state.pruebasAdmin = data || [];
+  renderPruebasAdmin(state.pruebasAdmin.filter(p => !p.libre));
+  if (state.usuariosAdmin.length > 0) renderUsuarios(state.usuariosAdmin);
 }
 
 function estadoPruebaAdmin(p) {
@@ -1138,7 +1142,8 @@ async function cargarUsuariosAdmin() {
     $('#admin-usuarios').innerHTML = `<p class="notice"><i class="fa-solid fa-triangle-exclamation"></i> ${error.message}</p>`;
     return;
   }
-  renderUsuarios(data || []);
+  state.usuariosAdmin = data || [];
+  renderUsuarios(state.usuariosAdmin);
 }
 
 function renderUsuarios(lista) {
@@ -1147,10 +1152,16 @@ function renderUsuarios(lista) {
     cont.innerHTML = '<p class="subtitle small">No hay usuarios todavía.</p>';
     return;
   }
-  cont.innerHTML = lista.map(u => `
+  cont.innerHTML = lista.map(u => {
+    const conteo = state.pruebasAdmin.filter(p => !p.libre && p.submitted_by === u.id).length;
+    return `
     <div class="assign-item">
       <span class="assign-texto">
-        <span class="li-titulo">${escapeHtml(u.avatar)} ${escapeHtml(u.name)} ${u.role === 'admin' ? '<span class="role-tag">admin</span>' : ''}</span>
+        <span class="li-titulo">
+          ${escapeHtml(u.avatar)} ${escapeHtml(u.name)}
+          <span class="conteo-pruebas">${conteo}/${MAX_PRUEBAS_POR_JUGADOR}</span>
+          ${u.role === 'admin' ? '<span class="role-tag">admin</span>' : ''}
+        </span>
         <span class="li-subtitulo">PIN ${escapeHtml(u.pin)}</span>
       </span>
       <span class="row-actions">
@@ -1158,7 +1169,8 @@ function renderUsuarios(lista) {
         <button class="btn btn-ghost btn-small" data-borrar="${u.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
       </span>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   cont.querySelectorAll('[data-editar]').forEach(btn => {
     btn.addEventListener('click', () => {
