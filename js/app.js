@@ -761,12 +761,20 @@ function initAdminActions() {
     const iso = new Date(valor).toISOString();
     const { error } = await supabaseClient.rpc('programar_inicio', { p_player_id: state.player.id, p_inicio: iso });
     if (error) { mostrarToast(error.message); return; }
+    // Actualizamos el estado ya mismo, sin esperar al viaje de ida y
+    // vuelta de Realtime: quien lo programa lo ve reflejado al instante.
+    state.inicioAt = iso;
+    renderAdmin();
+    renderTablero();
     mostrarToast('¡Inicio programado! ⏳');
   });
 
   $('#btn-cancelar-programacion').addEventListener('click', async () => {
     const { error } = await supabaseClient.rpc('programar_inicio', { p_player_id: state.player.id, p_inicio: null });
     if (error) { mostrarToast(error.message); return; }
+    state.inicioAt = null;
+    renderAdmin();
+    renderTablero();
     mostrarToast('Programación cancelada');
   });
 
@@ -775,7 +783,10 @@ function initAdminActions() {
     // falta confirmación: total, es lo mismo que "Cancelar programación".
     const { error } = await supabaseClient.rpc('reiniciar_bingo', { p_player_id: state.player.id });
     if (error) { mostrarToast(error.message); return; }
-    mostrarToast('Cuenta atrás reiniciada');
+    state.inicioAt = null;
+    renderAdmin();
+    renderTablero();
+    mostrarToast('Cuenta atrás reiniciada, elige una nueva fecha');
   });
 
   $('#btn-crear-usuario').addEventListener('click', abrirModalCrearUsuario);

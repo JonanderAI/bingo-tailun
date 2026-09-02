@@ -592,9 +592,10 @@ select option {
   line-height: 1.15;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   color: var(--text);
+  margin-bottom: 3px;
 }
 
 .bingo-cell.hidden-cell { background: linear-gradient(160deg, #2a1c4a, var(--bg-soft)); }
