@@ -622,11 +622,9 @@ select option {
 .bingo-cell.completed-cell { background: linear-gradient(160deg, rgba(255, 79, 168, 0.22), rgba(255, 79, 168, 0.06)); border-color: var(--primary); }
 .bingo-cell.completed-cell .cell-icon-bg { color: var(--primary); }
 
-/* El comodín solo se distingue por el icono de regalo: si no está en una
-   línea completada, su borde es igual que el de una casilla sin destapar,
-   y el icono es del mismo color que ese borde. */
-.bingo-cell.libre-cell { background: linear-gradient(160deg, rgba(124, 92, 255, 0.22), rgba(124, 92, 255, 0.06)); }
-.bingo-cell.libre-cell .cell-icon-bg { color: var(--card-border); opacity: 0.9; }
+.bingo-cell.libre-cell { background: linear-gradient(160deg, rgba(124, 92, 255, 0.22), rgba(124, 92, 255, 0.06)); border-color: var(--accent); }
+.bingo-cell.libre-cell .cell-icon-bg { color: var(--accent); opacity: 0.9; }
+.bingo-cell.libre-cell.en-linea { border-color: var(--success); }
 .bingo-cell.libre-cell.en-linea .cell-icon-bg { color: var(--success); }
 
 .bingo-cell.en-linea { border-color: var(--success); }
@@ -734,7 +732,11 @@ select option {
 
 .modal-close { position: absolute; top: 12px; right: 12px; font-size: 1.2rem; }
 
-.modal h3 { margin-top: 0; }
+/* El padding del modal es siempre 20px iguales; anulamos el margen del
+   primer/último hijo para que ningún contenido (h3, p, form...) le
+   sume espacio extra arriba o abajo y descuadre esa simetría. */
+#modal-content > *:first-child { margin-top: 0; }
+#modal-content > *:last-child { margin-bottom: 0; }
 .modal-emoji-header { font-size: 3rem; text-align: center; line-height: 1; margin-bottom: 4px; }
 .modal .modal-texto {
   background: var(--bg-soft);
