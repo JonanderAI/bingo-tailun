@@ -272,6 +272,35 @@ $$;
 
 grant execute on function borrar_mi_prueba(uuid, uuid) to anon;
 
+-- Cambiar tu propio PIN (desde el menú de usuario). Rechaza los PIN
+-- obvios (123456, 654321) y avisa igual que al registrarte si ya está
+-- en uso por otra cuenta.
+create or replace function cambiar_mi_pin(p_player_id uuid, p_pin_nuevo text)
+returns table(ok boolean, error text)
+language plpgsql
+security definer
+as $$
+begin
+  if p_pin_nuevo !~ '^[0-9]{6}$' then
+    return query select false, 'El PIN debe tener 6 dígitos'::text;
+    return;
+  end if;
+  if p_pin_nuevo in ('123456', '654321') then
+    return query select false, 'Ese PIN es demasiado obvio, elige otro'::text;
+    return;
+  end if;
+  begin
+    update players set pin = p_pin_nuevo where id = p_player_id;
+  exception when unique_violation then
+    return query select false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.'::text;
+    return;
+  end;
+  return query select true, null::text;
+end;
+$$;
+
+grant execute on function cambiar_mi_pin(uuid, text) to anon;
+
 -- La aportación del propio jugador: siempre visible para él/ella aunque
 -- todavía esté oculta para el resto (es su prueba, no hay secreto).
 create or replace function mi_prueba(p_player_id uuid)

@@ -214,6 +214,48 @@ function logout() {
   location.reload();
 }
 
+function abrirModalCambiarPin() {
+  $('#user-menu').classList.add('hidden');
+  abrirModal(`
+    <h3><i class="fa-solid fa-key"></i> Cambiar tu PIN</h3>
+    <form id="form-cambiar-pin">
+      <label class="field">
+        <span><i class="fa-solid fa-key"></i> PIN nuevo (6 dígitos)</span>
+        <input type="password" id="pin-nuevo" placeholder="••••••" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" autofocus />
+      </label>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      <p id="pin-nuevo-error" class="error-msg hidden"></p>
+    </form>
+  `);
+  $('#form-cambiar-pin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pin = $('#pin-nuevo').value.trim();
+    const errEl = $('#pin-nuevo-error');
+    errEl.classList.add('hidden');
+    if (!/^[0-9]{6}$/.test(pin)) {
+      errEl.textContent = 'El PIN debe tener 6 dígitos.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    if (pin === '123456' || pin === '654321') {
+      errEl.textContent = 'Ese PIN es demasiado obvio, elige otro.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    const { data, error } = await supabaseClient.rpc('cambiar_mi_pin', {
+      p_player_id: state.player.id, p_pin_nuevo: pin,
+    });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row?.ok) {
+      errEl.textContent = error?.message || row?.error || 'No se ha podido cambiar el PIN';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    cerrarModal();
+    mostrarToast('PIN actualizado');
+  });
+}
+
 function initUserMenu() {
   $('#user-chip-toggle').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1296,6 +1338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initInstalarBoton();
   initUserMenu();
   $('#logout-btn').addEventListener('click', () => { $('#user-menu').classList.add('hidden'); logout(); });
+  $('#cambiar-pin-btn').addEventListener('click', abrirModalCambiarPin);
 
   const sesion = leerSesion();
   if (sesion) {

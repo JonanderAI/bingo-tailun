@@ -204,6 +204,18 @@ function crearClienteMock() {
       return ok(true);
     },
 
+    cambiar_mi_pin: ({ p_player_id, p_pin_nuevo }) => {
+      if (!/^[0-9]{6}$/.test(p_pin_nuevo)) return ok([{ ok: false, error: 'El PIN debe tener 6 dígitos' }]);
+      if (['123456', '654321'].includes(p_pin_nuevo)) return ok([{ ok: false, error: 'Ese PIN es demasiado obvio, elige otro' }]);
+      if (players.some(pl => pl.id !== p_player_id && pl.pin === p_pin_nuevo)) {
+        return ok([{ ok: false, error: 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.' }]);
+      }
+      const player = players.find(p => p.id === p_player_id);
+      if (!player) return ok([{ ok: false, error: 'No encontrado' }]);
+      player.pin = p_pin_nuevo;
+      return ok([{ ok: true, error: null }]);
+    },
+
     ver_prueba_oculta: ({ p_prueba_id, p_player_id }) => {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
