@@ -572,6 +572,68 @@ function renderTablero() {
       grid.appendChild(bar);
     });
   }
+
+  renderRanking();
+}
+
+function renderRanking() {
+  const card = $('#card-ranking');
+  if (!card) return;
+  if (state.fase === 'submission') {
+    card.classList.add('hidden');
+    card.innerHTML = '';
+    return;
+  }
+
+  const conteo = new Map();
+  state.pruebas.forEach((p) => {
+    if (p.completada && p.completada_por) {
+      conteo.set(p.completada_por, (conteo.get(p.completada_por) || 0) + 1);
+    }
+  });
+
+  const ranking = Array.from(conteo.entries())
+    .map(([id, n]) => ({ n, jugador: state.players.find((pl) => pl.id === id) }))
+    .filter((r) => r.jugador)
+    .sort((a, b) => b.n - a.n);
+
+  card.classList.remove('hidden');
+
+  if (ranking.length === 0) {
+    card.innerHTML = `
+      <h3><i class="fa-solid fa-ranking-star"></i> Ranking de culpables</h3>
+      <p class="subtitle small">Todavía no ha bebido nadie.</p>
+    `;
+    return;
+  }
+
+  const medallas = ['🥇', '🥈', '🥉'];
+  const podio = ranking.slice(0, 3).map((r, i) => `
+    <div class="podio-item">
+      <span class="podio-puesto">${medallas[i]}</span>
+      <span class="podio-avatar">${escapeHtml(r.jugador.avatar)}</span>
+      <span class="podio-nombre">${escapeHtml(r.jugador.name)}</span>
+      <span class="podio-conteo">${r.n}</span>
+    </div>
+  `).join('');
+
+  const resto = ranking.slice(3);
+  const listaResto = resto.length === 0 ? '' : `
+    <div class="assign-list">${resto.map((r, i) => `
+      <div class="assign-item">
+        <span class="assign-texto">
+          <span class="li-titulo">${i + 4}º &middot; ${escapeHtml(r.jugador.avatar)} ${escapeHtml(r.jugador.name)}</span>
+        </span>
+        <span class="podio-conteo">${r.n}</span>
+      </div>
+    `).join('')}</div>
+  `;
+
+  card.innerHTML = `
+    <h3><i class="fa-solid fa-ranking-star"></i> Ranking de culpables</h3>
+    <div class="podio">${podio}</div>
+    ${listaResto}
+  `;
 }
 
 function escapeHtml(str) {

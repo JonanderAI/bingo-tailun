@@ -682,6 +682,26 @@ select option {
 .regla-item:last-child { margin-bottom: 0; }
 .regla-item i { color: var(--accent-2); font-size: 1.1rem; flex-shrink: 0; }
 
+/* ---------- Ranking de culpables ---------- */
+
+.podio { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.podio-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+.podio-item:nth-child(1) { border-color: var(--primary); }
+.podio-item:nth-child(2) { border-color: var(--accent); }
+.podio-item:nth-child(3) { border-color: var(--accent-2); }
+.podio-puesto { font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
+.podio-avatar { font-size: 1.2rem; line-height: 1; flex-shrink: 0; }
+.podio-nombre { flex: 1; min-width: 0; font-weight: 800; font-size: 0.9rem; }
+.podio-conteo { font-weight: 800; color: var(--text-dim); flex-shrink: 0; }
+
 /* Fuera del flujo flex: así no compite por altura con las 3 líneas del
    texto, que si no se veían recortadas por el nombre del culpable en
    casillas pequeñas. Se reserva su hueco con el padding-bottom de abajo. */
