@@ -240,11 +240,24 @@ begin
     raise exception 'Máximo 2 pruebas por jugador';
   end if;
 
+  -- No cogemos cualquier casilla libre al azar (con azar puro, sobre pocas
+  -- pruebas, tienden a amontonarse en un lado del tablero). En vez de eso,
+  -- de entre las libres nos quedamos con las que están más lejos (distancia
+  -- al cuadrado, fila/columna) de cualquier casilla ya ocupada, y solo entre
+  -- esas "más alejadas" desempatamos al azar. Así se reparten por todo el
+  -- tablero y aun así el resultado no es siempre el mismo patrón.
   select pos into v_pos
+  from (
+    select pos,
+      coalesce((
+        select min((pos / 6 - position / 6) ^ 2 + (pos % 6 - position % 6) ^ 2)
+        from pruebas where position is not null
+      ), 999) as dist2
     from generate_series(0, 35) pos
     where pos not in (select position from pruebas where position is not null)
-    order by random()
-    limit 1;
+  ) libres
+  order by dist2 desc, random()
+  limit 1;
 
   if v_pos is null then
     raise exception 'No quedan casillas libres en el tablero';

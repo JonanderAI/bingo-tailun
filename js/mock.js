@@ -179,11 +179,25 @@ function crearClienteMock() {
     crear_prueba: ({ p_player_id, p_texto }) => {
       if (gameState.fase !== 'submission') return fail('Ya no se pueden enviar pruebas, el bingo ha empezado');
       if (pruebas.filter(p => p.submitted_by === p_player_id).length >= 2) return fail('Máximo 2 pruebas por jugador');
-      const ocupadas = new Set(pruebas.filter(p => p.position !== null).map(p => p.position));
+      const ocupadas = [...new Set(pruebas.filter(p => p.position !== null).map(p => p.position))];
       const libres = [];
-      for (let i = 0; i < 36; i++) if (!ocupadas.has(i)) libres.push(i);
+      for (let i = 0; i < 36; i++) if (!ocupadas.includes(i)) libres.push(i);
       if (libres.length === 0) return fail('No quedan casillas libres en el tablero');
-      const pos = libres[Math.floor(Math.random() * libres.length)];
+      // Igual que crear_prueba en sql/schema.sql: de las casillas libres,
+      // solo consideramos las más alejadas de cualquier casilla ya ocupada
+      // (para que no se amontonen) y entre esas desempatamos al azar.
+      let mejorDist = -1;
+      let candidatas = [];
+      for (const pos of libres) {
+        const fila = Math.floor(pos / 6), col = pos % 6;
+        const dist = ocupadas.length === 0 ? 999 : Math.min(...ocupadas.map(o => {
+          const of = Math.floor(o / 6), oc = o % 6;
+          return (fila - of) ** 2 + (col - oc) ** 2;
+        }));
+        if (dist > mejorDist) { mejorDist = dist; candidatas = [pos]; }
+        else if (dist === mejorDist) { candidatas.push(pos); }
+      }
+      const pos = candidatas[Math.floor(Math.random() * candidatas.length)];
       pruebas.push({
         id: uid('prueba'), texto: capitalizaTexto(p_texto), submitted_by: p_player_id, responsable_id: null,
         position: pos, libre: false, revealed: false, completada: false, completada_por: null,
