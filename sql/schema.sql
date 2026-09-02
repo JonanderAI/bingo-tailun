@@ -708,10 +708,12 @@ grant execute on function volver_a_envios(uuid) to anon;
 
 -- ---------- GESTIÓN DE USUARIOS (admin) ----------
 
--- Listado completo de jugadores, con PIN incluido: solo para el admin,
--- para poder ver/editar/borrar cuentas desde el panel.
+-- Listado completo de jugadores para poder ver/editar/borrar cuentas desde
+-- el panel. Sin PIN: ni el admin lo ve, para no exponer el de nadie por
+-- encima del hombro; puede fijar uno nuevo al editar sin ver el actual.
+drop function if exists listar_jugadores_admin(uuid);
 create or replace function listar_jugadores_admin(p_player_id uuid)
-returns table(id uuid, name text, pin text, avatar text, role text, created_at timestamptz)
+returns table(id uuid, name text, avatar text, role text, created_at timestamptz)
 language plpgsql
 security definer
 as $$
@@ -722,7 +724,7 @@ begin
   if v_role <> 'admin' then
     raise exception 'No autorizado';
   end if;
-  return query select p.id, p.name, p.pin, p.avatar, p.role, p.created_at from players p order by p.created_at;
+  return query select p.id, p.name, p.avatar, p.role, p.created_at from players p order by p.created_at;
 end;
 $$;
 
@@ -764,7 +766,8 @@ $$;
 
 grant execute on function admin_crear_jugador(uuid, text, text, text, text) to anon;
 
--- Editar una cuenta existente
+-- Editar una cuenta existente. El PIN es opcional: si se deja en blanco no
+-- se toca (el admin no ve el PIN actual, solo puede fijar uno nuevo si hace falta).
 create or replace function admin_editar_jugador(p_player_id uuid, p_target_id uuid, p_name text, p_pin text, p_avatar text, p_role text)
 returns table(ok boolean, error text)
 language plpgsql
@@ -772,6 +775,7 @@ security definer
 as $$
 declare
   v_role text;
+  v_pin_nuevo text;
 begin
   select role into v_role from players where id = p_player_id;
   if v_role <> 'admin' then
@@ -781,13 +785,20 @@ begin
     return query select false, 'Ya existe otra cuenta con ese nombre';
     return;
   end if;
-  if exists (select 1 from players p where p.pin = p_pin and p.id <> p_target_id) then
-    return query select false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.';
-    return;
+  v_pin_nuevo := nullif(trim(p_pin), '');
+  if v_pin_nuevo is not null then
+    if v_pin_nuevo !~ '^[0-9]{6}$' then
+      return query select false, 'El PIN debe tener 6 dígitos';
+      return;
+    end if;
+    if exists (select 1 from players p where p.pin = v_pin_nuevo and p.id <> p_target_id) then
+      return query select false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.';
+      return;
+    end if;
   end if;
   begin
     update players
-      set name = trim(p_name), pin = p_pin, avatar = coalesce(nullif(p_avatar, ''), avatar), role = coalesce(p_role, role)
+      set name = trim(p_name), pin = coalesce(v_pin_nuevo, pin), avatar = coalesce(nullif(p_avatar, ''), avatar), role = coalesce(p_role, role)
       where id = p_target_id;
   exception when unique_violation then
     return query select false, 'Ya se ha creado un usuario con ese PIN. Si no has sido tú, por favor pon otro.';

@@ -1292,7 +1292,6 @@ function renderUsuarios(lista) {
           <span class="conteo-pruebas">${conteo}/${MAX_PRUEBAS_POR_JUGADOR}</span>
           ${u.role === 'admin' ? '<span class="role-tag">admin</span>' : ''}
         </span>
-        <span class="li-subtitulo">PIN ${escapeHtml(u.pin)}</span>
       </span>
       <span class="row-actions">
         <button class="btn btn-ghost btn-small" data-editar="${u.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
@@ -1374,8 +1373,8 @@ function abrirModalEditarUsuario(u) {
       <label class="field"><span><i class="fa-solid fa-signature"></i> Nombre</span>
         <input type="text" id="us-name" maxlength="30" required autocomplete="off" value="${escapeHtml(u.name)}" />
       </label>
-      <label class="field"><span><i class="fa-solid fa-key"></i> PIN (6 dígitos)</span>
-        <input type="text" id="us-pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" value="${escapeHtml(u.pin)}" />
+      <label class="field"><span><i class="fa-solid fa-key"></i> Nuevo PIN (opcional)</span>
+        <input type="text" id="us-pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="Déjalo en blanco para no cambiarlo" />
       </label>
       <label class="field"><span><i class="fa-solid fa-face-grin-stars"></i> Avatar (emoji)</span>
         <input type="text" id="us-avatar" maxlength="4" value="${escapeHtml(u.avatar)}" />
@@ -1399,7 +1398,7 @@ function abrirModalEditarUsuario(u) {
     const role = $('#us-role').value;
     const errEl = $('#us-error');
     errEl.classList.add('hidden');
-    if (!/^[0-9]{6}$/.test(pin)) { errEl.textContent = 'El PIN debe tener 6 dígitos.'; errEl.classList.remove('hidden'); return; }
+    if (pin && !/^[0-9]{6}$/.test(pin)) { errEl.textContent = 'El PIN debe tener 6 dígitos.'; errEl.classList.remove('hidden'); return; }
 
     const { data, error } = await supabaseClient.rpc('admin_editar_jugador', {
       p_player_id: state.player.id, p_target_id: u.id, p_name: name, p_pin: pin, p_avatar: avatar || null, p_role: role,

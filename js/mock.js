@@ -415,7 +415,7 @@ function crearClienteMock() {
     listar_jugadores_admin: ({ p_player_id }) => {
       const player = players.find(p => p.id === p_player_id);
       if (!player || player.role !== 'admin') return fail('No autorizado');
-      return ok(players.map(p => ({ ...p })));
+      return ok(players.map(({ pin, ...resto }) => ({ ...resto })));
     },
 
     admin_crear_jugador: ({ p_player_id, p_name, p_pin, p_avatar, p_role }) => {
@@ -440,13 +440,14 @@ function crearClienteMock() {
       if (players.some(pl => pl.id !== p_target_id && pl.name.toLowerCase() === nombre.toLowerCase())) {
         return ok([{ ok: false, error: 'Ya existe otra cuenta con ese nombre' }]);
       }
-      if (players.some(pl => pl.id !== p_target_id && pl.pin === p_pin)) {
+      const pinNuevo = (p_pin || '').trim() || null;
+      if (pinNuevo && players.some(pl => pl.id !== p_target_id && pl.pin === pinNuevo)) {
         return ok([{ ok: false, error: 'Ese PIN ya está en uso por otra cuenta' }]);
       }
       const target = players.find(pl => pl.id === p_target_id);
       if (!target) return ok([{ ok: false, error: 'No encontrado' }]);
       target.name = nombre;
-      target.pin = p_pin;
+      if (pinNuevo) target.pin = pinNuevo;
       if (p_avatar) target.avatar = p_avatar;
       if (p_role) target.role = p_role;
       emit('players', {});
