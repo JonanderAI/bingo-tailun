@@ -484,7 +484,7 @@ function renderTablero() {
     if (enSubmission) {
       cell.classList.add('hidden-cell');
       if (!prueba) {
-        cell.innerHTML = `<i class="fa-solid fa-dice cell-icon-bg"></i>`;
+        cell.innerHTML = `<i class="fa-solid fa-bomb cell-icon-bg cell-icon-vacia"></i>`;
       } else {
         cell.innerHTML = `
           <span class="lock-wrap">
@@ -499,7 +499,7 @@ function renderTablero() {
 
     if (!prueba) {
       cell.classList.add('hidden-cell');
-      cell.innerHTML = `<i class="fa-solid fa-dice cell-icon-bg"></i>`;
+      cell.innerHTML = `<i class="fa-solid fa-bomb cell-icon-bg cell-icon-vacia"></i>`;
     } else if (prueba.libre) {
       cell.classList.add('libre-cell');
       cell.innerHTML = `<i class="fa-solid fa-gift cell-icon-bg"></i><span class="cell-text">${escapeHtml(prueba.texto || 'Comodín')}</span>`;

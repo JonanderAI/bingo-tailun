@@ -569,6 +569,7 @@ input[type="datetime-local"] { width: 100%; }
   color: var(--text-dim);
   pointer-events: none;
 }
+.bingo-cell .cell-icon-vacia { font-size: 1.3rem; }
 .bingo-cell .cell-text {
   position: relative;
   z-index: 1;
