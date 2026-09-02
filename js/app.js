@@ -9,9 +9,9 @@ const state = {
   player: null, // { id, name, role, avatar }
   fase: 'submission',
   boardSize: 25,
+  inicioAt: null, // fecha/hora programada de inicio (ISO) o null
   pruebas: [], // pruebas_publicas
   players: [], // players_publicos
-  misResponsabilidades: [], // ids de pruebas que puedo desvelar
   misPruebas: [], // mis propias aportaciones (texto siempre visible para mí, hasta 3)
 };
 
@@ -97,6 +97,7 @@ function cambiarVista(id) {
   const v = document.getElementById(id);
   if (v) v.classList.add('active');
   $all('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === id));
+  $('#app-header').classList.toggle('hidden', id === 'view-login');
 }
 
 // ---------- login / registro ----------
@@ -194,6 +195,16 @@ function logout() {
   location.reload();
 }
 
+function initUserMenu() {
+  $('#user-chip-toggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#user-menu').classList.toggle('hidden');
+  });
+  document.addEventListener('click', (e) => {
+    if (!$('#user-chip').contains(e.target)) $('#user-menu').classList.add('hidden');
+  });
+}
+
 // ---------- carga de datos ----------
 
 async function cargarGameState() {
@@ -201,6 +212,7 @@ async function cargarGameState() {
   if (error) throw error;
   state.fase = data.fase;
   state.boardSize = data.board_size;
+  state.inicioAt = data.inicio_at;
 }
 
 async function cargarPruebas() {
@@ -216,13 +228,6 @@ async function cargarPlayers() {
   const { data, error } = await supabaseClient.from('players_publicos').select('*').order('name');
   if (error) throw error;
   state.players = data || [];
-}
-
-async function cargarMisResponsabilidades() {
-  if (!state.player) return;
-  const { data, error } = await supabaseClient.rpc('mis_responsabilidades', { p_player_id: state.player.id });
-  if (error) { console.error(error); return; }
-  state.misResponsabilidades = data || [];
 }
 
 async function cargarMisPruebas() {
@@ -256,6 +261,7 @@ function renderHeader() {
   // Los jugadores normales solo tienen una pantalla (el tablero), así
   // que no necesitan pestañas. El admin sí, para acceder a su panel.
   tabs.classList.toggle('hidden', state.player.role !== 'admin');
+  document.body.classList.toggle('has-tabs', state.player.role === 'admin');
   $('#user-avatar-label').textContent = state.player.avatar || '🎉';
   $('#user-name-label').textContent = state.player.name;
   const badge = $('#user-role-badge');
@@ -346,6 +352,28 @@ function iconoParaCelda(prueba) {
   return 'fa-lock';
 }
 
+function formatearCuentaAtras(ms) {
+  if (ms <= 0) return '00:00:00';
+  const totalSeg = Math.floor(ms / 1000);
+  const dias = Math.floor(totalSeg / 86400);
+  const horas = Math.floor((totalSeg % 86400) / 3600);
+  const min = Math.floor((totalSeg % 3600) / 60);
+  const seg = totalSeg % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return (dias > 0 ? `${dias}d ` : '') + `${pad(horas)}:${pad(min)}:${pad(seg)}`;
+}
+
+function actualizarCuentaAtras() {
+  const box = $('#countdown-box');
+  if (!box || state.fase !== 'submission' || !state.inicioAt) {
+    if (box) box.classList.add('hidden');
+    return;
+  }
+  box.classList.remove('hidden');
+  const restante = new Date(state.inicioAt).getTime() - Date.now();
+  $('#countdown-timer').textContent = formatearCuentaAtras(restante);
+}
+
 function renderTablero() {
   const grid = $('#bingo-grid');
   const emptyMsg = $('#board-empty-msg');
@@ -354,11 +382,14 @@ function renderTablero() {
   badge.textContent = state.fase === 'submission' ? 'Esperando pruebas' : (state.fase === 'playing' ? 'En juego' : 'Terminado');
   badge.className = 'fase-badge ' + state.fase;
 
+  actualizarCuentaAtras();
+
   if (state.fase === 'submission') {
-    emptyMsg.classList.remove('hidden');
+    emptyMsg.classList.toggle('hidden', !!state.inicioAt);
     grid.innerHTML = '';
     return;
   }
+  $('#countdown-box').classList.add('hidden');
   emptyMsg.classList.add('hidden');
 
   const lado = Math.round(Math.sqrt(state.boardSize));
@@ -384,7 +415,7 @@ function renderTablero() {
       cell.innerHTML = `<i class="fa-solid fa-fire cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span>`;
     } else {
       cell.classList.add('hidden-cell');
-      if (state.player.role === 'admin' || state.misResponsabilidades.includes(prueba.id)) {
+      if (state.player.role === 'admin') {
         cell.classList.add('puede-ver');
       }
       cell.innerHTML = `<i class="fa-solid fa-lock cell-icon"></i>`;
@@ -428,13 +459,13 @@ async function abrirCelda(prueba, ev) {
       <h3><i class="fa-solid fa-champagne-glasses"></i> Prueba cumplida</h3>
       <p class="modal-texto">${escapeHtml(prueba.texto)}</p>
       <p class="modal-meta"><i class="fa-solid fa-user-check"></i> Cumplida por <strong>${escapeHtml(nombreConAvatar(prueba.completada_por))}</strong></p>
-      <p class="modal-meta"><i class="fa-solid fa-user-shield"></i> Encargado/a: <strong>${escapeHtml(nombreConAvatar(prueba.responsable_id))}</strong></p>
+      <p class="modal-meta"><i class="fa-solid fa-champagne-glasses"></i> Chupito con: <strong>${escapeHtml(nombreConAvatar(prueba.gestionado_por))}</strong></p>
     `);
     return;
   }
 
   if (prueba.revealed) {
-    const autorizado = state.player.role === 'admin' || prueba.responsable_id === state.player.id;
+    const autorizado = state.player.role === 'admin';
     let acciones = '';
     if (autorizado) {
       const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
@@ -452,7 +483,6 @@ async function abrirCelda(prueba, ev) {
     abrirModal(`
       <h3><i class="fa-solid fa-fire"></i> Prueba activa</h3>
       <p class="modal-texto">${escapeHtml(prueba.texto)}</p>
-      <p class="modal-meta"><i class="fa-solid fa-user-shield"></i> Encargado/a: <strong>${escapeHtml(nombreConAvatar(prueba.responsable_id))}</strong></p>
       ${acciones}
     `);
     if (autorizado) {
@@ -477,7 +507,7 @@ async function abrirCelda(prueba, ev) {
   if (!texto) {
     abrirModal(`
       <h3><i class="fa-solid fa-lock"></i> Prueba oculta</h3>
-      <p class="modal-texto">Solo el admin o el encargado/a de esta prueba pueden verla.</p>
+      <p class="modal-texto">Solo el admin puede verla.</p>
     `);
     return;
   }
@@ -518,58 +548,55 @@ async function marcarCumplida(pruebaId, cumplidorId) {
 
 // ---------- admin ----------
 
+function toLocalDatetimeInput(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function renderAdmin() {
   if (state.player?.role !== 'admin') return;
   $('#admin-fase-label').textContent = { submission: 'Enviando pruebas', playing: 'En juego', finished: 'Terminado' }[state.fase] || state.fase;
-  $('#btn-iniciar-bingo').disabled = state.fase !== 'submission';
-}
 
-async function renderAsignaciones() {
-  if (state.player?.role !== 'admin') return;
-  const { data, error } = await supabaseClient.rpc('listar_pruebas_admin', { p_player_id: state.player.id });
-  const cont = $('#admin-asignaciones');
-  if (error) {
-    cont.innerHTML = `<p class="notice"><i class="fa-solid fa-triangle-exclamation"></i> ${error.message}</p>`;
+  const info = $('#programado-info');
+  const cancelBtn = $('#btn-cancelar-programacion');
+  const input = $('#programar-fecha');
+
+  if (state.fase !== 'submission') {
+    info.classList.add('hidden');
+    cancelBtn.classList.add('hidden');
+    $('#programar-form').classList.add('hidden');
     return;
   }
-  const pruebas = (data || []).filter(p => !p.libre);
-  if (pruebas.length === 0) {
-    cont.innerHTML = '<p class="subtitle small">Todavía no hay pruebas enviadas.</p>';
-    return;
+  $('#programar-form').classList.remove('hidden');
+
+  if (state.inicioAt) {
+    const d = new Date(state.inicioAt);
+    info.innerHTML = `<i class="fa-solid fa-calendar-check"></i> Programado para ${d.toLocaleString('es-ES')}`;
+    info.classList.remove('hidden');
+    cancelBtn.classList.remove('hidden');
+    input.value = toLocalDatetimeInput(state.inicioAt);
+  } else {
+    info.classList.add('hidden');
+    cancelBtn.classList.add('hidden');
   }
-  cont.innerHTML = '';
-  pruebas.forEach(p => {
-    const opciones = ['<option value="">Sin asignar</option>']
-      .concat(state.players.map(pl => `<option value="${pl.id}" ${pl.id === p.responsable_id ? 'selected' : ''}>${escapeHtml(pl.avatar)} ${escapeHtml(pl.name)}</option>`))
-      .join('');
-    const div = document.createElement('div');
-    div.className = 'assign-item';
-    div.innerHTML = `
-      <span class="assign-texto"><i class="fa-solid fa-scroll"></i> ${escapeHtml(p.texto)}</span>
-      <select data-prueba-id="${p.id}">${opciones}</select>
-    `;
-    cont.appendChild(div);
-  });
-  cont.querySelectorAll('select').forEach(sel => {
-    sel.addEventListener('change', async () => {
-      const pruebaId = sel.dataset.pruebaId;
-      const responsableId = sel.value || null;
-      await supabaseClient.rpc('asignar_responsable', {
-        p_player_id: state.player.id,
-        p_prueba_id: pruebaId,
-        p_responsable_id: responsableId,
-      });
-      mostrarToast('Encargado/a actualizado');
-    });
-  });
 }
 
 function initAdminActions() {
-  $('#btn-iniciar-bingo').addEventListener('click', async () => {
-    if (!confirm('¿Iniciar el bingo? Se repartirán las pruebas enviadas por el tablero.')) return;
-    const { error } = await supabaseClient.rpc('iniciar_bingo', { p_player_id: state.player.id });
+  $('#programar-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const valor = $('#programar-fecha').value;
+    if (!valor) { mostrarToast('Elige una fecha y hora'); return; }
+    const iso = new Date(valor).toISOString();
+    const { error } = await supabaseClient.rpc('programar_inicio', { p_player_id: state.player.id, p_inicio: iso });
     if (error) { mostrarToast(error.message); return; }
-    mostrarToast('¡El bingo ha comenzado! 🔥');
+    mostrarToast('¡Inicio programado! ⏳');
+  });
+
+  $('#btn-cancelar-programacion').addEventListener('click', async () => {
+    const { error } = await supabaseClient.rpc('programar_inicio', { p_player_id: state.player.id, p_inicio: null });
+    if (error) { mostrarToast(error.message); return; }
+    mostrarToast('Programación cancelada');
   });
 
   $('#btn-reiniciar-bingo').addEventListener('click', async () => {
@@ -578,6 +605,157 @@ function initAdminActions() {
     if (error) { mostrarToast(error.message); return; }
     mostrarToast('Partida reiniciada');
   });
+
+  $('#btn-crear-usuario').addEventListener('click', abrirModalCrearUsuario);
+}
+
+// ---------- admin: usuarios ----------
+
+async function cargarUsuariosAdmin() {
+  if (state.player?.role !== 'admin') return;
+  const { data, error } = await supabaseClient.rpc('listar_jugadores_admin', { p_player_id: state.player.id });
+  if (error) {
+    $('#admin-usuarios').innerHTML = `<p class="notice"><i class="fa-solid fa-triangle-exclamation"></i> ${error.message}</p>`;
+    return;
+  }
+  renderUsuarios(data || []);
+}
+
+function renderUsuarios(lista) {
+  const cont = $('#admin-usuarios');
+  if (lista.length === 0) {
+    cont.innerHTML = '<p class="subtitle small">No hay usuarios todavía.</p>';
+    return;
+  }
+  cont.innerHTML = lista.map(u => `
+    <div class="assign-item">
+      <span class="assign-texto">${escapeHtml(u.avatar)} ${escapeHtml(u.name)} ${u.role === 'admin' ? '<span class="role-badge">admin</span>' : ''}</span>
+      <span class="subtitle small" style="margin:0;">PIN ${escapeHtml(u.pin)}</span>
+      <button class="btn btn-ghost btn-small" data-editar="${u.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+      <button class="btn btn-ghost btn-small" data-borrar="${u.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+
+  cont.querySelectorAll('[data-editar]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const u = lista.find(x => x.id === btn.dataset.editar);
+      if (u) abrirModalEditarUsuario(u);
+    });
+  });
+  cont.querySelectorAll('[data-borrar]').forEach(btn => {
+    btn.addEventListener('click', () => borrarUsuario(btn.dataset.borrar, lista.find(x => x.id === btn.dataset.borrar)?.name));
+  });
+}
+
+async function refrescarTrasCambioUsuarios() {
+  await Promise.all([cargarPlayers(), cargarUsuariosAdmin()]);
+  renderTablero();
+}
+
+function abrirModalCrearUsuario() {
+  abrirModal(`
+    <h3><i class="fa-solid fa-user-plus"></i> Crear usuario</h3>
+    <form id="form-usuario">
+      <label class="field"><span><i class="fa-solid fa-signature"></i> Nombre</span>
+        <input type="text" id="us-name" maxlength="30" required autocomplete="off" />
+      </label>
+      <label class="field"><span><i class="fa-solid fa-key"></i> PIN (6 dígitos)</span>
+        <input type="text" id="us-pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" />
+      </label>
+      <label class="field"><span><i class="fa-solid fa-face-grin-stars"></i> Avatar (emoji)</span>
+        <input type="text" id="us-avatar" maxlength="4" placeholder="😈" />
+      </label>
+      <label class="field"><span><i class="fa-solid fa-user-shield"></i> Rol</span>
+        <select id="us-role">
+          <option value="player">Jugador</option>
+          <option value="admin">Admin</option>
+        </select>
+      </label>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-user-plus"></i> Crear</button>
+      <p id="us-error" class="error-msg hidden"></p>
+    </form>
+  `);
+
+  $('#form-usuario').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('#us-name').value.trim();
+    const pin = $('#us-pin').value.trim();
+    const avatar = $('#us-avatar').value.trim();
+    const role = $('#us-role').value;
+    const errEl = $('#us-error');
+    errEl.classList.add('hidden');
+    if (!/^[0-9]{6}$/.test(pin)) { errEl.textContent = 'El PIN debe tener 6 dígitos.'; errEl.classList.remove('hidden'); return; }
+
+    const { data, error } = await supabaseClient.rpc('admin_crear_jugador', {
+      p_player_id: state.player.id, p_name: name, p_pin: pin, p_avatar: avatar || null, p_role: role,
+    });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row?.ok) {
+      errEl.textContent = error?.message || row?.error || 'No se ha podido crear';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    cerrarModal();
+    mostrarToast('Usuario creado');
+    await refrescarTrasCambioUsuarios();
+  });
+}
+
+function abrirModalEditarUsuario(u) {
+  abrirModal(`
+    <h3><i class="fa-solid fa-pen"></i> Editar usuario</h3>
+    <form id="form-usuario">
+      <label class="field"><span><i class="fa-solid fa-signature"></i> Nombre</span>
+        <input type="text" id="us-name" maxlength="30" required autocomplete="off" value="${escapeHtml(u.name)}" />
+      </label>
+      <label class="field"><span><i class="fa-solid fa-key"></i> PIN (6 dígitos)</span>
+        <input type="text" id="us-pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off" value="${escapeHtml(u.pin)}" />
+      </label>
+      <label class="field"><span><i class="fa-solid fa-face-grin-stars"></i> Avatar (emoji)</span>
+        <input type="text" id="us-avatar" maxlength="4" value="${escapeHtml(u.avatar)}" />
+      </label>
+      <label class="field"><span><i class="fa-solid fa-user-shield"></i> Rol</span>
+        <select id="us-role">
+          <option value="player" ${u.role === 'player' ? 'selected' : ''}>Jugador</option>
+          <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+        </select>
+      </label>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      <p id="us-error" class="error-msg hidden"></p>
+    </form>
+  `);
+
+  $('#form-usuario').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('#us-name').value.trim();
+    const pin = $('#us-pin').value.trim();
+    const avatar = $('#us-avatar').value.trim();
+    const role = $('#us-role').value;
+    const errEl = $('#us-error');
+    errEl.classList.add('hidden');
+    if (!/^[0-9]{6}$/.test(pin)) { errEl.textContent = 'El PIN debe tener 6 dígitos.'; errEl.classList.remove('hidden'); return; }
+
+    const { data, error } = await supabaseClient.rpc('admin_editar_jugador', {
+      p_player_id: state.player.id, p_target_id: u.id, p_name: name, p_pin: pin, p_avatar: avatar || null, p_role: role,
+    });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row?.ok) {
+      errEl.textContent = error?.message || row?.error || 'No se ha podido guardar';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    cerrarModal();
+    mostrarToast('Usuario actualizado');
+    await refrescarTrasCambioUsuarios();
+  });
+}
+
+async function borrarUsuario(id, nombre) {
+  if (!confirm(`¿Borrar a ${nombre || 'este usuario'}? No se puede deshacer.`)) return;
+  const { error } = await supabaseClient.rpc('admin_borrar_jugador', { p_player_id: state.player.id, p_target_id: id });
+  if (error) { mostrarToast(error.message); return; }
+  mostrarToast('Usuario borrado');
+  await refrescarTrasCambioUsuarios();
 }
 
 // ---------- eventos en tiempo real ----------
@@ -586,10 +764,9 @@ function initRealtime() {
   supabaseClient
     .channel('bingo-tailun')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pruebas' }, async () => {
-      await Promise.all([cargarPruebas(), cargarMisPruebas(), cargarMisResponsabilidades()]);
+      await Promise.all([cargarPruebas(), cargarMisPruebas()]);
       renderTablero();
       renderMiAportacion();
-      if (state.player?.role === 'admin') await renderAsignaciones();
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_state' }, async () => {
       await cargarGameState();
@@ -631,17 +808,30 @@ async function arrancarApp(player) {
     cargarGameState(),
     cargarPruebas(),
     cargarPlayers(),
-    cargarMisResponsabilidades(),
     cargarMisPruebas(),
   ]);
 
   renderTablero();
   renderMiAportacion();
   renderAdmin();
-  if (player.role === 'admin') await renderAsignaciones();
+  if (player.role === 'admin') {
+    await cargarUsuariosAdmin();
+  }
 
   cambiarVista('view-tablero');
   initRealtime();
+  iniciarComprobacionInicio();
+}
+
+// Cuenta atrás visual cada segundo + comprobación real cada 10s de si ya
+// toca empezar (cualquier cliente conectado puede disparar el inicio).
+function iniciarComprobacionInicio() {
+  setInterval(actualizarCuentaAtras, 1000);
+  setInterval(async () => {
+    if (state.fase !== 'submission' || !state.inicioAt) return;
+    if (new Date(state.inicioAt).getTime() > Date.now()) return;
+    await supabaseClient.rpc('comprobar_inicio_programado');
+  }, 10_000);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -652,7 +842,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTabs();
   initModal();
   initInstalarBoton();
-  $('#logout-btn').addEventListener('click', logout);
+  initUserMenu();
+  $('#logout-btn').addEventListener('click', () => { $('#user-menu').classList.add('hidden'); logout(); });
 
   const sesion = leerSesion();
   if (sesion) {

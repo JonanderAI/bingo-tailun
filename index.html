@@ -10,7 +10,7 @@
   <meta name="description" content="El bingo de pruebas del finde. ¡Que empiece la fiesta!" />
 
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ff5d7a" />
+  <meta name="theme-color" content="#ffea07" />
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
@@ -23,7 +23,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <link rel="stylesheet" href="css/style.css?v=4" />
+  <link rel="stylesheet" href="css/style.css?v=5" />
 </head>
 <body>
   <div id="emoji-layer" aria-hidden="true"></div>
@@ -33,9 +33,9 @@
     <i class="fa-solid fa-flask"></i> Modo demo &middot; datos de prueba, sin base de datos conectada
   </div>
 
-  <header class="app-header">
+  <header id="app-header" class="app-header">
     <div class="brand">
-      <span class="brand-icon"><i class="fa-solid fa-champagne-glasses"></i></span>
+      <span class="brand-icon" aria-hidden="true">😈</span>
       <div class="brand-text">
         <span class="brand-name">Bingo de <strong>Tailún</strong></span>
         <span class="brand-sub">El malvado</span>
@@ -46,12 +46,17 @@
         <i class="fa-solid fa-arrow-down-to-bracket"></i>
       </button>
       <div id="user-chip" class="user-chip hidden">
-        <span id="user-avatar-label" class="user-avatar"></span>
-        <span id="user-name-label"></span>
-        <span id="user-role-badge" class="role-badge hidden"></span>
-        <button id="logout-btn" class="icon-btn" title="Salir">
-          <i class="fa-solid fa-right-from-bracket"></i>
+        <button id="user-chip-toggle" class="user-chip-toggle">
+          <span id="user-avatar-label" class="user-avatar"></span>
+          <span id="user-name-label"></span>
+          <span id="user-role-badge" class="role-badge hidden"></span>
+          <i class="fa-solid fa-chevron-down user-chip-caret"></i>
         </button>
+        <div id="user-menu" class="user-menu hidden">
+          <button id="logout-btn" class="user-menu-item">
+            <i class="fa-solid fa-right-from-bracket"></i> Salir
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -61,10 +66,11 @@
     <!-- LOGIN -->
     <section id="view-login" class="view">
       <div class="card login-card">
-        <div class="login-hero">
-          <i class="fa-solid fa-dice"></i>
+        <div class="login-brand">
+          <span class="login-brand-icon" aria-hidden="true">😈</span>
+          <h1>Bingo de <strong>Tailún</strong></h1>
+          <span class="login-brand-sub">El malvado</span>
         </div>
-        <h1>¡Bienvenido/a!</h1>
         <p id="demo-hint" class="notice hidden"><i class="fa-solid fa-flask"></i> Demo: entra con el PIN <strong>123456</strong> (admin), o crea una cuenta nueva.</p>
 
         <div class="login-switch">
@@ -121,6 +127,10 @@
           <h2><i class="fa-solid fa-table-cells-large"></i> Tablero del bingo</h2>
           <div id="fase-badge" class="fase-badge"></div>
         </div>
+        <div id="countdown-box" class="countdown-box hidden">
+          <span class="countdown-label"><i class="fa-solid fa-hourglass-half"></i> El bingo empieza en</span>
+          <span id="countdown-timer" class="countdown-timer">--:--:--</span>
+        </div>
         <p id="board-empty-msg" class="notice hidden">
           <i class="fa-solid fa-hourglass-half"></i> El bingo aún no ha empezado. ¡Manda tu prueba y espera al admin!
         </p>
@@ -135,10 +145,24 @@
       <div class="card">
         <h2><i class="fa-solid fa-gamepad"></i> Control del juego</h2>
         <p class="subtitle">Fase actual: <strong id="admin-fase-label">-</strong></p>
-        <div class="admin-actions">
-          <button id="btn-iniciar-bingo" class="btn btn-accent">
-            <i class="fa-solid fa-play"></i> Iniciar bingo
-          </button>
+
+        <form id="programar-form">
+          <label class="field">
+            <span><i class="fa-solid fa-calendar-clock"></i> Fecha y hora de inicio</span>
+            <input type="datetime-local" id="programar-fecha" />
+          </label>
+          <div class="admin-actions">
+            <button type="submit" class="btn btn-accent">
+              <i class="fa-solid fa-calendar-check"></i> Programar inicio
+            </button>
+            <button type="button" id="btn-cancelar-programacion" class="btn btn-ghost hidden">
+              <i class="fa-solid fa-calendar-xmark"></i> Cancelar
+            </button>
+          </div>
+        </form>
+        <p id="programado-info" class="notice hidden"></p>
+
+        <div class="admin-actions" style="margin-top: 10px;">
           <button id="btn-reiniciar-bingo" class="btn btn-ghost">
             <i class="fa-solid fa-rotate-left"></i> Reiniciar partida
           </button>
@@ -146,9 +170,12 @@
       </div>
 
       <div class="card">
-        <h3><i class="fa-solid fa-user-shield"></i> Asignar encargados</h3>
-        <p class="subtitle small">Cada prueba necesita un encargado/a que la supervise y la habilite cuando pase.</p>
-        <div id="admin-asignaciones" class="assign-list"></div>
+        <h3><i class="fa-solid fa-users"></i> Usuarios</h3>
+        <p class="subtitle small">Ver, editar, borrar o crear cuentas manualmente.</p>
+        <div id="admin-usuarios" class="assign-list"></div>
+        <button id="btn-crear-usuario" class="btn btn-primary btn-block" style="margin-top: 12px;">
+          <i class="fa-solid fa-user-plus"></i> Crear usuario
+        </button>
       </div>
     </section>
 
@@ -164,9 +191,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/config.js?v=1"></script>
-  <script src="js/mock.js?v=1"></script>
+  <script src="js/mock.js?v=2"></script>
   <script src="js/supabaseClient.js?v=1"></script>
   <script src="js/confetti.js?v=1"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 </html>

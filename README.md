@@ -2,20 +2,20 @@
 
 Bingo de pruebas para el finde. Cada uno se da de alta con su nombre y un
 PIN de 6 dígitos (le asignamos un avatar emoji al azar), y propone hasta
-3 pruebas ("su aportación")
-que se puedan cumplir ese finde. Cuando el admin inicia el bingo, las
-pruebas se reparten al azar por un tablero (con un comodín en el centro) y
-quedan ocultas. Solo el admin o el encargado/a asignado a cada prueba puede
-verla y habilitarla cuando pasa: entonces se muestra a todo el mundo y
-beben el cumplidor y el encargado/a. Cuando se completa una línea o el
-tablero entero, bebéis todos.
+3 pruebas ("su aportación") que se puedan cumplir ese finde. El admin
+programa la fecha y hora de inicio (sin pulsar ningún botón "arrancar"):
+en cuanto llega esa hora, el bingo empieza solo y las pruebas se reparten
+al azar por un tablero (con un comodín en el centro), ocultas. Cualquier
+admin puede verlas y habilitarlas cuando pasan: entonces se muestran a
+todo el mundo y beben el cumplidor y el admin que lo gestiona. Cuando se
+completa una línea o el tablero entero, bebéis todos.
 
 Es una PWA instalable: al entrar o crear cuenta se ofrece instalarla
 (Android/Chrome); en iPhone/iPad, el botón de instalar de la cabecera
 explica cómo hacerlo desde Compartir → Añadir a pantalla de inicio. Se
 instala como **Tailún el malvado** con icono 😈.
 
-Tema oscuro festivo fijo, todo el rato.
+Tema oscuro festivo fijo, todo el rato. Paleta amarillo/violeta/magenta.
 
 ## 1. Crear el proyecto en Supabase
 
@@ -26,6 +26,8 @@ Tema oscuro festivo fijo, todo el rato.
    ```sql
    update players set role = 'admin' where name = 'TuNombre';
    ```
+   A partir de ahí ya puedes ascender a otros jugadores a admin desde el
+   propio panel (Admin → Usuarios → editar → rol).
 4. En **Project Settings > API**, copia la **Project URL** y la **anon public key**.
 5. Comprueba que Realtime está activo para `pruebas`, `eventos` y
    `game_state` (el propio `schema.sql` ya lo activa al final con
@@ -56,9 +58,9 @@ tener Supabase configurado.
 4. Pasa ese enlace a tus amigos.
 
 **Caché en el móvil**: `index.html` carga `css/style.css` y `js/*.js` con
-`?v=1`. Si cambias esos archivos, sube ese número (`?v=2`, `?v=3`...) o los
-móviles pueden seguir viendo la versión vieja un rato aunque hagan pull-to-
-refresh, por caché del navegador y de la CDN de GitHub Pages.
+`?v=N`. Si cambias esos archivos, sube ese número o los móviles pueden
+seguir viendo la versión vieja un rato aunque hagan pull-to-refresh, por
+caché del navegador y de la CDN de GitHub Pages.
 
 ## Cómo funciona
 
@@ -70,16 +72,21 @@ refresh, por caché del navegador y de la CDN de GitHub Pages.
   propia tarjeta para enviar hasta 3 pruebas y ver su estado (guardada,
   oculta, activa o cumplida). Solo tú ves el texto de tus propias pruebas
   mientras están ocultas para el resto.
-- **Admin**: en su pestaña, asigna un encargado/a a cada prueba y pulsa
-  **Iniciar bingo**: calcula el tablero cuadrado más pequeño que cabe con
-  todas las pruebas + 1 comodín central, y reparte posiciones al azar.
-- **Durante el finde**: solo el admin o el encargado/a de una prueba pueden
-  verla oculta. Cuando pasa, la habilitan ("Habilitar para todos") y se
-  muestra a todo el mundo con una lluvia de emojis 🧨🔥😈🦀🦭.
-- **Cumplir una prueba**: el admin o el encargado/a marcan quién la ha
-  cumplido → chupito para el cumplidor y el encargado/a (aviso para todos).
+- **Inicio programado**: el admin fija fecha y hora en su panel; el
+  tablero muestra una cuenta atrás mientras se espera. Al llegar la hora
+  (y si hay al menos una prueba enviada), el bingo arranca solo — lo
+  dispara cualquier cliente conectado, no hace falta que el admin esté
+  mirando la pantalla en ese momento.
+- **Cualquier admin, cualquier prueba**: no hay encargados fijos por
+  prueba. Cualquier cuenta con rol admin puede ver el contenido oculto de
+  cualquier casilla, habilitarla ("Habilitar para todos" → lluvia de
+  emojis 🧨🔥😈🦀🦭) y marcarla cumplida.
+- **Cumplir una prueba**: el admin que la marca elige quién la cumplió →
+  chupito para el cumplidor y para ese admin (aviso para todos).
 - **Línea / Bingo**: se detecta automáticamente al completar una fila,
   columna o el tablero entero → aviso de "todos bebéis" para todo el mundo.
+- **Usuarios (admin)**: ver, crear, editar (incluido el rol, para hacer
+  admin a alguien más) y borrar cuentas.
 - Todo se sincroniza en tiempo real entre todos los móviles (Supabase Realtime).
 
 ## Estructura
@@ -98,10 +105,11 @@ icons/, manifest.json   iconos y manifest de la PWA
 
 ## Seguridad
 
-No usa Supabase Auth: el login es propio (nombre + PIN) vía funciones RPC
-en Postgres (`login_jugador`, `registrar_jugador`). El PIN nunca se expone
-por la API (las tablas base no tienen `select` para el rol `anon`, solo
-vistas sin PIN y funciones RPC con `security definer`). El texto de las
-pruebas ocultas solo se sirve a quien el servidor autoriza (admin o
-encargado/a asignado), comprobado en cada función SQL. No es un sistema
-pensado para datos sensibles, es un juego entre amigos.
+No usa Supabase Auth: el login es propio (PIN único) vía funciones RPC en
+Postgres (`login_jugador`, `registrar_jugador`). El PIN nunca se expone
+por la API a jugadores normales (las tablas base no tienen `select` para
+el rol `anon`, solo vistas sin PIN y funciones RPC con `security
+definer`); el admin sí puede verlo desde su panel de Usuarios, para poder
+gestionarlos. El texto de las pruebas ocultas solo se sirve a cuentas
+admin, comprobado en cada función SQL. No es un sistema pensado para
+datos sensibles, es un juego entre amigos.

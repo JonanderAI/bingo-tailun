@@ -27,7 +27,8 @@ create table if not exists pruebas (
   id uuid primary key default gen_random_uuid(),
   texto text not null,
   submitted_by uuid references players(id) on delete set null,
-  responsable_id uuid references players(id) on delete set null,
+  responsable_id uuid references players(id) on delete set null, -- ya no se usa (sin encargados fijos), se deja por compatibilidad
+  gestionado_por uuid references players(id) on delete set null, -- qué admin la marcó cumplida: bebe con el cumplidor
   position int unique,
   libre boolean not null default false,
   revealed boolean not null default false,
@@ -38,14 +39,21 @@ create table if not exists pruebas (
   completada_at timestamptz
 );
 
+-- Si ya tenías la tabla creada de antes, añade la columna nueva:
+-- alter table pruebas add column if not exists gestionado_por uuid references players(id) on delete set null;
+
 create table if not exists game_state (
   id int primary key default 1,
   fase text not null default 'submission' check (fase in ('submission', 'playing', 'finished')),
   board_size int not null default 25,
+  inicio_at timestamptz,
   updated_at timestamptz not null default now(),
   constraint single_row check (id = 1)
 );
 insert into game_state (id) values (1) on conflict (id) do nothing;
+
+-- Si ya tenías la tabla creada de antes, añade la columna del inicio programado:
+-- alter table game_state add column if not exists inicio_at timestamptz;
 
 create table if not exists eventos (
   id uuid primary key default gen_random_uuid(),
@@ -89,7 +97,8 @@ create or replace view pruebas_publicas as
     submitted_by,
     case when revealed or libre then texto else null end as texto,
     case when revealed or libre then responsable_id else null end as responsable_id,
-    created_at
+    created_at,
+    gestionado_por
   from pruebas;
 
 grant select on players_publicos to anon, authenticated;
@@ -200,7 +209,7 @@ $$;
 
 grant execute on function mi_prueba(uuid) to anon;
 
--- Ver el texto de una prueba oculta (solo admin o responsable asignado)
+-- Ver el texto de una prueba oculta (solo admin: ya no hay encargados fijos)
 create or replace function ver_prueba_oculta(p_prueba_id uuid, p_player_id uuid)
 returns text
 language plpgsql
@@ -208,15 +217,14 @@ security definer
 as $$
 declare
   v_role text;
-  v_resp uuid;
   v_texto text;
 begin
   select role into v_role from players where id = p_player_id;
-  select responsable_id, texto into v_resp, v_texto from pruebas where id = p_prueba_id;
-  if v_role = 'admin' or v_resp = p_player_id then
-    return v_texto;
+  if v_role <> 'admin' then
+    return null;
   end if;
-  return null;
+  select texto into v_texto from pruebas where id = p_prueba_id;
+  return v_texto;
 end;
 $$;
 
@@ -254,17 +262,15 @@ $$;
 
 grant execute on function listar_pruebas_admin(uuid) to anon;
 
--- Iniciar el bingo: calcula automáticamente el lado del tablero (el
--- cuadrado más pequeño que cabe con todas las pruebas + 1 comodín
--- central) y reparte las posiciones al azar. Las casillas que sobren
--- quedan vacías (decorativas, sin prueba).
-create or replace function iniciar_bingo(p_player_id uuid)
-returns boolean
+-- Reparto interno: calcula el lado del tablero más pequeño que cabe con
+-- todas las pruebas + 1 comodín central y reparte posiciones al azar.
+-- Sin comprobación de permisos: solo la llaman las funciones de abajo.
+create or replace function _repartir_y_empezar()
+returns void
 language plpgsql
 security definer
 as $$
 declare
-  v_role text;
   v_ids uuid[];
   v_count int;
   v_side int;
@@ -273,17 +279,12 @@ declare
   v_pos int;
   i int;
 begin
-  select role into v_role from players where id = p_player_id;
-  if v_role <> 'admin' then
-    raise exception 'Solo el admin puede iniciar el bingo';
-  end if;
-
   select array_agg(id order by random()) into v_ids
   from pruebas where position is null and not libre;
 
   v_count := coalesce(array_length(v_ids, 1), 0);
   if v_count = 0 then
-    raise exception 'No hay pruebas enviadas todavía';
+    return;
   end if;
 
   v_side := greatest(3, ceil(sqrt(v_count + 1))::int);
@@ -302,12 +303,88 @@ begin
     v_pos := v_pos + 1;
   end loop;
 
-  update game_state set fase = 'playing', board_size = v_size, updated_at = now() where id = 1;
+  update game_state set fase = 'playing', board_size = v_size, inicio_at = null, updated_at = now() where id = 1;
+end;
+$$;
+
+-- Iniciar el bingo manualmente (admin). Se deja por si hace falta un
+-- botón de emergencia, aunque la app ya no lo usa: el flujo normal es
+-- programar_inicio() + comprobar_inicio_programado().
+create or replace function iniciar_bingo(p_player_id uuid)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+  v_count int;
+begin
+  select role into v_role from players where id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'Solo el admin puede iniciar el bingo';
+  end if;
+
+  select count(*) into v_count from pruebas where position is null and not libre;
+  if v_count = 0 then
+    raise exception 'No hay pruebas enviadas todavía';
+  end if;
+
+  perform _repartir_y_empezar();
   return true;
 end;
 $$;
 
 grant execute on function iniciar_bingo(uuid) to anon;
+
+-- El admin programa fecha/hora de inicio (o la cancela pasando null)
+create or replace function programar_inicio(p_player_id uuid, p_inicio timestamptz)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+begin
+  select role into v_role from players where id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'Solo el admin puede programar el inicio';
+  end if;
+  update game_state set inicio_at = p_inicio, updated_at = now() where id = 1;
+  return true;
+end;
+$$;
+
+grant execute on function programar_inicio(uuid, timestamptz) to anon;
+
+-- Cualquier cliente conectado puede llamar a esto (no hace falta ser
+-- admin): solo actúa si ya ha llegado la hora programada y hay pruebas
+-- que repartir. Así el bingo arranca solo, sin que el admin pulse nada.
+create or replace function comprobar_inicio_programado()
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_fase text;
+  v_inicio timestamptz;
+  v_count int;
+begin
+  select fase, inicio_at into v_fase, v_inicio from game_state where id = 1;
+  if v_fase <> 'submission' or v_inicio is null or now() < v_inicio then
+    return false;
+  end if;
+
+  select count(*) into v_count from pruebas where position is null and not libre;
+  if v_count = 0 then
+    return false;
+  end if;
+
+  perform _repartir_y_empezar();
+  return true;
+end;
+$$;
+
+grant execute on function comprobar_inicio_programado() to anon;
 
 -- Asignar responsable a una prueba (admin)
 create or replace function asignar_responsable(p_player_id uuid, p_prueba_id uuid, p_responsable_id uuid)
@@ -337,11 +414,9 @@ security definer
 as $$
 declare
   v_role text;
-  v_resp uuid;
 begin
   select role into v_role from players where id = p_player_id;
-  select responsable_id into v_resp from pruebas where id = p_prueba_id;
-  if v_role <> 'admin' and (v_resp is null or v_resp <> p_player_id) then
+  if v_role <> 'admin' then
     raise exception 'No autorizado';
   end if;
   update pruebas set revealed = true, revealed_at = now() where id = p_prueba_id;
@@ -360,12 +435,11 @@ security definer
 as $$
 declare
   v_role text;
-  v_resp uuid;
-  v_resp_name text;
+  v_pos int;
+  v_gestor_name text;
   v_cumplidor_name text;
   v_size int;
   v_lado int;
-  v_pos int;
   v_fila int;
   v_col int;
   v_linea boolean := false;
@@ -376,21 +450,21 @@ declare
   v_col_completa boolean;
 begin
   select role into v_role from players where id = p_player_id;
-  select responsable_id, position into v_resp, v_pos from pruebas where id = p_prueba_id;
-  if v_role <> 'admin' and (v_resp is null or v_resp <> p_player_id) then
+  if v_role <> 'admin' then
     raise exception 'No autorizado';
   end if;
+  select position into v_pos from pruebas where id = p_prueba_id;
 
   update pruebas
-    set completada = true, completada_por = p_cumplidor_id, completada_at = now(), revealed = true
+    set completada = true, completada_por = p_cumplidor_id, gestionado_por = p_player_id, completada_at = now(), revealed = true
     where id = p_prueba_id;
 
-  select name into v_resp_name from players where id = v_resp;
+  select name into v_gestor_name from players where id = p_player_id;
   select name into v_cumplidor_name from players where id = p_cumplidor_id;
 
   insert into eventos(tipo, mensaje) values (
     'chupito',
-    coalesce(v_cumplidor_name, 'Alguien') || ' y ' || coalesce(v_resp_name, 'el encargado') || ' beben un chupito 🥃'
+    coalesce(v_cumplidor_name, 'Alguien') || ' y ' || coalesce(v_gestor_name, 'el admin') || ' beben un chupito 🥃'
   );
 
   select board_size into v_size from game_state where id = 1;
@@ -445,12 +519,119 @@ begin
   end if;
   delete from pruebas;
   delete from eventos;
-  update game_state set fase = 'submission', updated_at = now() where id = 1;
+  update game_state set fase = 'submission', inicio_at = null, board_size = 25, updated_at = now() where id = 1;
   return true;
 end;
 $$;
 
 grant execute on function reiniciar_bingo(uuid) to anon;
+
+-- ---------- GESTIÓN DE USUARIOS (admin) ----------
+
+-- Listado completo de jugadores, con PIN incluido: solo para el admin,
+-- para poder ver/editar/borrar cuentas desde el panel.
+create or replace function listar_jugadores_admin(p_player_id uuid)
+returns table(id uuid, name text, pin text, avatar text, role text, created_at timestamptz)
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+begin
+  select role into v_role from players where id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+  return query select p.id, p.name, p.pin, p.avatar, p.role, p.created_at from players p order by p.created_at;
+end;
+$$;
+
+grant execute on function listar_jugadores_admin(uuid) to anon;
+
+-- Crear una cuenta directamente desde el panel de admin
+create or replace function admin_crear_jugador(p_player_id uuid, p_name text, p_pin text, p_avatar text, p_role text)
+returns table(id uuid, ok boolean, error text)
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+  v_new_id uuid;
+begin
+  select role into v_role from players where id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+  if exists (select 1 from players p where lower(p.name) = lower(p_name)) then
+    return query select null::uuid, false, 'Ya existe una cuenta con ese nombre';
+    return;
+  end if;
+  if exists (select 1 from players p where p.pin = p_pin) then
+    return query select null::uuid, false, 'Ese PIN ya está en uso';
+    return;
+  end if;
+  insert into players(name, pin, avatar, role)
+  values (trim(p_name), p_pin, coalesce(nullif(p_avatar, ''), '🎉'), coalesce(p_role, 'player'))
+  returning players.id into v_new_id;
+  return query select v_new_id, true, null::text;
+end;
+$$;
+
+grant execute on function admin_crear_jugador(uuid, text, text, text, text) to anon;
+
+-- Editar una cuenta existente
+create or replace function admin_editar_jugador(p_player_id uuid, p_target_id uuid, p_name text, p_pin text, p_avatar text, p_role text)
+returns table(ok boolean, error text)
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+begin
+  select role into v_role from players where id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+  if exists (select 1 from players p where lower(p.name) = lower(p_name) and p.id <> p_target_id) then
+    return query select false, 'Ya existe otra cuenta con ese nombre';
+    return;
+  end if;
+  if exists (select 1 from players p where p.pin = p_pin and p.id <> p_target_id) then
+    return query select false, 'Ese PIN ya está en uso por otra cuenta';
+    return;
+  end if;
+  update players
+    set name = trim(p_name), pin = p_pin, avatar = coalesce(nullif(p_avatar, ''), avatar), role = coalesce(p_role, role)
+    where id = p_target_id;
+  return query select true, null::text;
+end;
+$$;
+
+grant execute on function admin_editar_jugador(uuid, uuid, text, text, text, text) to anon;
+
+-- Borrar una cuenta. Las pruebas que hubiera enviado/gestionado/cumplido
+-- no se borran, solo quedan sin dueño (on delete set null).
+create or replace function admin_borrar_jugador(p_player_id uuid, p_target_id uuid)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+begin
+  select role into v_role from players where id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+  if p_target_id = p_player_id then
+    raise exception 'No puedes borrar tu propia cuenta de admin';
+  end if;
+  delete from players where id = p_target_id;
+  return true;
+end;
+$$;
+
+grant execute on function admin_borrar_jugador(uuid, uuid) to anon;
 
 -- ---------- REALTIME ----------
 -- Añade las tablas a la publicación de Realtime, sin fallar si ya

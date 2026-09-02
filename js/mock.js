@@ -54,7 +54,7 @@ function crearClienteMock() {
     completada_at: null,
   }));
 
-  const gameState = { id: 1, fase: 'playing', board_size: 25, updated_at: new Date().toISOString() };
+  const gameState = { id: 1, fase: 'playing', board_size: 25, inicio_at: null, updated_at: new Date().toISOString() };
   const eventos = [];
 
   // Calcula el lado del tablero más pequeño que cabe con todas las
@@ -102,6 +102,7 @@ function crearClienteMock() {
       p.revealed = true;
       p.completada = true;
       p.completada_por = players[(i + 2) % players.length].id;
+      p.gestionado_por = players[0].id;
       p.completada_at = new Date().toISOString();
     } else if (i % 3 === 0) {
       p.revealed = true;
@@ -130,6 +131,7 @@ function crearClienteMock() {
       submitted_by: p.submitted_by,
       texto: (p.revealed || p.libre) ? p.texto : null,
       responsable_id: (p.revealed || p.libre) ? p.responsable_id : null,
+      gestionado_por: p.gestionado_por || null,
     }));
   }
 
@@ -190,12 +192,8 @@ function crearClienteMock() {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
       if (!player || !prueba) return ok(null);
-      if (player.role === 'admin' || prueba.responsable_id === p_player_id) return ok(prueba.texto);
+      if (player.role === 'admin') return ok(prueba.texto);
       return ok(null);
-    },
-
-    mis_responsabilidades: ({ p_player_id }) => {
-      return ok(pruebas.filter(p => p.responsable_id === p_player_id).map(p => p.id));
     },
 
     listar_pruebas_admin: ({ p_player_id }) => {
@@ -204,20 +202,11 @@ function crearClienteMock() {
       return ok(pruebas.map(p => ({ ...p })));
     },
 
-    asignar_responsable: ({ p_player_id, p_prueba_id, p_responsable_id }) => {
-      const player = players.find(p => p.id === p_player_id);
-      if (!player || player.role !== 'admin') return fail('No autorizado');
-      const prueba = pruebas.find(p => p.id === p_prueba_id);
-      if (prueba) prueba.responsable_id = p_responsable_id || null;
-      emit('pruebas', {});
-      return ok(true);
-    },
-
     revelar_prueba: ({ p_player_id, p_prueba_id }) => {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
       if (!player || !prueba) return fail('No autorizado');
-      if (player.role !== 'admin' && prueba.responsable_id !== p_player_id) return fail('No autorizado');
+      if (player.role !== 'admin') return fail('No autorizado');
       prueba.revealed = true;
       prueba.revealed_at = new Date().toISOString();
       emit('pruebas', {});
@@ -228,18 +217,18 @@ function crearClienteMock() {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
       if (!player || !prueba) return fail('No autorizado');
-      if (player.role !== 'admin' && prueba.responsable_id !== p_player_id) return fail('No autorizado');
+      if (player.role !== 'admin') return fail('No autorizado');
 
       prueba.completada = true;
       prueba.completada_por = p_cumplidor_id;
+      prueba.gestionado_por = p_player_id;
       prueba.completada_at = new Date().toISOString();
       prueba.revealed = true;
 
-      const responsable = players.find(p => p.id === prueba.responsable_id);
       const cumplidor = players.find(p => p.id === p_cumplidor_id);
       const evento = {
         id: uid('evento'), tipo: 'chupito',
-        mensaje: `${cumplidor ? cumplidor.name : 'Alguien'} y ${responsable ? responsable.name : 'el encargado'} beben un chupito 🥃`,
+        mensaje: `${cumplidor ? cumplidor.name : 'Alguien'} y ${player.name} beben un chupito 🥃`,
         created_at: new Date().toISOString(),
       };
       eventos.push(evento);
@@ -268,6 +257,29 @@ function crearClienteMock() {
       }
       repartirTablero();
       gameState.fase = 'playing';
+      gameState.inicio_at = null;
+      gameState.updated_at = new Date().toISOString();
+      emit('pruebas', {});
+      emit('game_state', {});
+      return ok(true);
+    },
+
+    programar_inicio: ({ p_player_id, p_inicio }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('Solo el admin puede programar el inicio');
+      gameState.inicio_at = p_inicio;
+      gameState.updated_at = new Date().toISOString();
+      emit('game_state', {});
+      return ok(true);
+    },
+
+    comprobar_inicio_programado: () => {
+      if (gameState.fase !== 'submission' || !gameState.inicio_at) return ok(false);
+      if (new Date() < new Date(gameState.inicio_at)) return ok(false);
+      if (pruebas.filter(p => p.position === null && !p.libre).length === 0) return ok(false);
+      repartirTablero();
+      gameState.fase = 'playing';
+      gameState.inicio_at = null;
       gameState.updated_at = new Date().toISOString();
       emit('pruebas', {});
       emit('game_state', {});
@@ -280,9 +292,67 @@ function crearClienteMock() {
       pruebas = [];
       eventos.length = 0;
       gameState.fase = 'submission';
+      gameState.inicio_at = null;
+      gameState.board_size = 25;
       gameState.updated_at = new Date().toISOString();
       emit('pruebas', {});
       emit('game_state', {});
+      return ok(true);
+    },
+
+    listar_jugadores_admin: ({ p_player_id }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      return ok(players.map(p => ({ ...p })));
+    },
+
+    admin_crear_jugador: ({ p_player_id, p_name, p_pin, p_avatar, p_role }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      const nombre = (p_name || '').trim();
+      if (players.some(pl => pl.name.toLowerCase() === nombre.toLowerCase())) {
+        return ok([{ id: null, ok: false, error: 'Ya existe una cuenta con ese nombre' }]);
+      }
+      if (players.some(pl => pl.pin === p_pin)) {
+        return ok([{ id: null, ok: false, error: 'Ese PIN ya está en uso' }]);
+      }
+      const nuevo = { id: uid('player'), name: nombre, pin: p_pin, avatar: p_avatar || '🎉', role: p_role || 'player' };
+      players.push(nuevo);
+      return ok([{ id: nuevo.id, ok: true, error: null }]);
+    },
+
+    admin_editar_jugador: ({ p_player_id, p_target_id, p_name, p_pin, p_avatar, p_role }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      const nombre = (p_name || '').trim();
+      if (players.some(pl => pl.id !== p_target_id && pl.name.toLowerCase() === nombre.toLowerCase())) {
+        return ok([{ ok: false, error: 'Ya existe otra cuenta con ese nombre' }]);
+      }
+      if (players.some(pl => pl.id !== p_target_id && pl.pin === p_pin)) {
+        return ok([{ ok: false, error: 'Ese PIN ya está en uso por otra cuenta' }]);
+      }
+      const target = players.find(pl => pl.id === p_target_id);
+      if (!target) return ok([{ ok: false, error: 'No encontrado' }]);
+      target.name = nombre;
+      target.pin = p_pin;
+      if (p_avatar) target.avatar = p_avatar;
+      if (p_role) target.role = p_role;
+      emit('players', {});
+      return ok([{ ok: true, error: null }]);
+    },
+
+    admin_borrar_jugador: ({ p_player_id, p_target_id }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      if (p_target_id === p_player_id) return fail('No puedes borrar tu propia cuenta de admin');
+      const idx = players.findIndex(pl => pl.id === p_target_id);
+      if (idx !== -1) players.splice(idx, 1);
+      pruebas.forEach(p => {
+        if (p.submitted_by === p_target_id) p.submitted_by = null;
+        if (p.responsable_id === p_target_id) p.responsable_id = null;
+        if (p.completada_por === p_target_id) p.completada_por = null;
+      });
+      emit('pruebas', {});
       return ok(true);
     },
   };
