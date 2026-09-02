@@ -288,8 +288,17 @@ function estadoAportacion(p) {
 
 function renderMiAportacion() {
   const cont = $('#card-mi-aportacion');
+  $('#card-reglas-juego').classList.toggle('hidden', state.fase === 'submission');
+  // Una vez ha empezado el bingo, esta tarjeta sobra: ya se ve todo en el tablero.
+  if (state.fase !== 'submission') {
+    cont.classList.add('hidden');
+    cont.innerHTML = '';
+    return;
+  }
+  cont.classList.remove('hidden');
+
   const mias = state.misPruebas;
-  const puedeAnadirMas = state.fase === 'submission' && mias.length < MAX_PRUEBAS_POR_JUGADOR;
+  const puedeAnadirMas = mias.length < MAX_PRUEBAS_POR_JUGADOR;
 
   let listaHtml = '';
   if (mias.length > 0) {
@@ -302,8 +311,6 @@ function renderMiAportacion() {
         </span>
       </li>
     `).join('')}</ul>`;
-  } else if (state.fase !== 'submission') {
-    listaHtml = `<p class="subtitle small">No enviaste ninguna prueba esta vez. ¡A disfrutar del bingo de los demás! 🍻</p>`;
   }
 
   let formHtml = '';
@@ -383,10 +390,6 @@ function actualizarCuentaAtras() {
 function renderTablero() {
   const grid = $('#bingo-grid');
   const emptyMsg = $('#board-empty-msg');
-  const badge = $('#fase-badge');
-
-  badge.textContent = state.fase === 'submission' ? 'Esperando pruebas' : (state.fase === 'playing' ? 'En juego' : 'Terminado');
-  badge.className = 'fase-badge ' + state.fase;
 
   actualizarCuentaAtras();
 
@@ -401,30 +404,51 @@ function renderTablero() {
   const lado = Math.round(Math.sqrt(state.boardSize));
   grid.innerHTML = '';
 
+  // Filas/columnas ya completadas (línea), para marcarlas visualmente.
+  const conPosicion = state.pruebas.filter(p => p.position !== null);
+  const filasCompletas = new Set();
+  const colsCompletas = new Set();
+  for (let f = 0; f < lado; f++) {
+    const celdas = conPosicion.filter(p => Math.floor(p.position / lado) === f);
+    if (celdas.length === lado && celdas.every(p => p.completada)) filasCompletas.add(f);
+  }
+  for (let c = 0; c < lado; c++) {
+    const celdas = conPosicion.filter(p => p.position % lado === c);
+    if (celdas.length === lado && celdas.every(p => p.completada)) colsCompletas.add(c);
+  }
+
   for (let i = 0; i < state.boardSize; i++) {
     const prueba = state.pruebas.find(p => p.position === i);
     const cell = document.createElement('div');
     cell.className = 'bingo-cell';
     cell.dataset.position = i;
+    if (filasCompletas.has(Math.floor(i / lado)) || colsCompletas.has(i % lado)) {
+      cell.classList.add('en-linea');
+    }
 
     if (!prueba) {
       cell.classList.add('hidden-cell');
-      cell.innerHTML = `<i class="fa-solid fa-dice cell-icon"></i>`;
+      cell.innerHTML = `<i class="fa-solid fa-dice cell-icon-bg"></i>`;
     } else if (prueba.libre) {
       cell.classList.add('libre-cell');
-      cell.innerHTML = `<i class="fa-solid fa-gift cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || 'Comodín')}</span>`;
+      cell.innerHTML = `<i class="fa-solid fa-gift cell-icon-bg"></i><span class="cell-text">${escapeHtml(prueba.texto || 'Comodín')}</span>`;
     } else if (prueba.completada) {
       cell.classList.add('completed-cell');
-      cell.innerHTML = `<i class="fa-solid fa-champagne-glasses cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>`;
+      cell.innerHTML = `<i class="fa-solid fa-champagne-glasses cell-icon-bg"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>`;
     } else if (prueba.revealed) {
       cell.classList.add('revealed-cell');
-      cell.innerHTML = `<i class="fa-solid fa-fire cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span>`;
+      cell.innerHTML = `<i class="fa-solid fa-fire cell-icon-bg"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span>`;
     } else {
       cell.classList.add('hidden-cell');
       if (state.player.role === 'admin' || prueba.submitted_by === state.player.id) {
         cell.classList.add('puede-ver');
       }
-      cell.innerHTML = `<span class="cell-icon cell-emoji">${escapeHtml(avatarDe(prueba.submitted_by))}</span>`;
+      cell.innerHTML = `
+        <span class="lock-wrap">
+          <i class="fa-solid fa-lock cell-lock-icon"></i>
+          <span class="cell-emoji-inside">${escapeHtml(avatarDe(prueba.submitted_by))}</span>
+        </span>
+      `;
     }
 
     if (prueba) {
@@ -666,8 +690,10 @@ function renderPruebasAdmin(lista) {
         <span class="li-titulo">${escapeHtml(p.texto)}</span>
         <span class="li-subtitulo">${estadoPruebaAdmin(p)} &middot; de ${escapeHtml(nombreConAvatar(p.submitted_by))}</span>
       </span>
-      <button class="btn btn-ghost btn-small" data-editar-prueba="${p.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
-      <button class="btn btn-ghost btn-small" data-borrar-prueba="${p.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+      <span class="row-actions">
+        <button class="btn btn-ghost btn-small" data-editar-prueba="${p.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-ghost btn-small" data-borrar-prueba="${p.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+      </span>
     </div>
   `).join('');
 
@@ -746,10 +772,14 @@ function renderUsuarios(lista) {
   }
   cont.innerHTML = lista.map(u => `
     <div class="assign-item">
-      <span class="assign-texto">${escapeHtml(u.avatar)} ${escapeHtml(u.name)} ${u.role === 'admin' ? '<span class="role-tag">admin</span>' : ''}</span>
-      <span class="subtitle small" style="margin:0;">PIN ${escapeHtml(u.pin)}</span>
-      <button class="btn btn-ghost btn-small" data-editar="${u.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
-      <button class="btn btn-ghost btn-small" data-borrar="${u.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+      <span class="assign-texto">
+        <span class="li-titulo">${escapeHtml(u.avatar)} ${escapeHtml(u.name)} ${u.role === 'admin' ? '<span class="role-tag">admin</span>' : ''}</span>
+        <span class="li-subtitulo">PIN ${escapeHtml(u.pin)}</span>
+      </span>
+      <span class="row-actions">
+        <button class="btn btn-ghost btn-small" data-editar="${u.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-ghost btn-small" data-borrar="${u.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+      </span>
     </div>
   `).join('');
 

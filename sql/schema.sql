@@ -529,8 +529,8 @@ begin
   if v_role <> 'admin' then
     raise exception 'Solo el admin puede reiniciar';
   end if;
-  delete from pruebas;
-  delete from eventos;
+  delete from pruebas where true;
+  delete from eventos where true;
   update game_state set fase = 'submission', inicio_at = null, board_size = 25, updated_at = now() where id = 1;
   return true;
 end;
