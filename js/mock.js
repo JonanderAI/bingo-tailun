@@ -12,6 +12,13 @@ function activarModoDemo() {
 
 const AVATARES_ALEATORIOS = ['😈', '🦭', '🦀', '🧨', '🧀', '🍷', '🤮', '💩', '🗿', '🦍', '🇪🇸'];
 
+// Pone en mayúscula solo la primera letra (a diferencia de capitalizar
+// cada palabra), igual que capitaliza_texto() en SQL.
+function capitalizaTexto(texto) {
+  const t = (texto || '').trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+
 function crearClienteMock() {
   const uid = (() => { let n = 0; return (p) => `${p}-${++n}`; })();
 
@@ -176,7 +183,7 @@ function crearClienteMock() {
       if (libres.length === 0) return fail('No quedan casillas libres en el tablero');
       const pos = libres[Math.floor(Math.random() * libres.length)];
       pruebas.push({
-        id: uid('prueba'), texto: (p_texto || '').trim(), submitted_by: p_player_id, responsable_id: null,
+        id: uid('prueba'), texto: capitalizaTexto(p_texto), submitted_by: p_player_id, responsable_id: null,
         position: pos, libre: false, revealed: false, completada: false, completada_por: null,
         created_at: new Date().toISOString(), revealed_at: null, completada_at: null,
       });
@@ -192,7 +199,7 @@ function crearClienteMock() {
       if (gameState.fase !== 'submission') return fail('Ya no se pueden editar pruebas, el bingo ha empezado');
       const prueba = pruebas.find(p => p.id === p_prueba_id);
       if (!prueba || prueba.submitted_by !== p_player_id) return fail('No autorizado');
-      prueba.texto = (p_texto || '').trim();
+      prueba.texto = capitalizaTexto(p_texto);
       emit('pruebas', {});
       return ok(true);
     },
@@ -238,7 +245,7 @@ function crearClienteMock() {
       if (!player || player.role !== 'admin') return fail('No autorizado');
       const prueba = pruebas.find(p => p.id === p_prueba_id && !p.libre);
       if (!prueba) return fail('No encontrada');
-      prueba.texto = (p_texto || '').trim();
+      prueba.texto = capitalizaTexto(p_texto);
       emit('pruebas', {});
       return ok(true);
     },

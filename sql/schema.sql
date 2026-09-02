@@ -5,6 +5,20 @@
 
 create extension if not exists pgcrypto;
 
+-- Pone en mayúscula solo la primera letra del texto (a diferencia de
+-- initcap(), que capitaliza cada palabra). Usado al guardar el texto
+-- de una prueba.
+create or replace function capitaliza_texto(p_texto text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when p_texto is null or trim(p_texto) = '' then p_texto
+    else upper(substring(trim(p_texto) from 1 for 1)) || substring(trim(p_texto) from 2)
+  end;
+$$;
+
 -- ---------- TABLAS ----------
 
 create table if not exists players (
@@ -219,7 +233,7 @@ begin
     raise exception 'No quedan casillas libres en el tablero';
   end if;
 
-  insert into pruebas(texto, submitted_by, position) values (trim(p_texto), p_player_id, v_pos)
+  insert into pruebas(texto, submitted_by, position) values (capitaliza_texto(p_texto), p_player_id, v_pos)
   returning id into v_id;
   return v_id;
 end;
@@ -245,7 +259,7 @@ begin
   if v_submitted_by is distinct from p_player_id then
     raise exception 'No autorizado';
   end if;
-  update pruebas set texto = trim(p_texto) where id = p_prueba_id;
+  update pruebas set texto = capitaliza_texto(p_texto) where id = p_prueba_id;
   return true;
 end;
 $$;
@@ -801,7 +815,7 @@ begin
   if v_role <> 'admin' then
     raise exception 'No autorizado';
   end if;
-  update pruebas set texto = trim(p_texto) where id = p_prueba_id and not libre;
+  update pruebas set texto = capitaliza_texto(p_texto) where id = p_prueba_id and not libre;
   return true;
 end;
 $$;
