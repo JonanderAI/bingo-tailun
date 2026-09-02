@@ -253,6 +253,16 @@ function crearClienteMock() {
       return ok(true);
     },
 
+    admin_quitar_foto_prueba: ({ p_player_id, p_prueba_id }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      const prueba = pruebas.find(p => p.id === p_prueba_id && !p.libre);
+      if (!prueba) return fail('No encontrada');
+      prueba.foto_url = null;
+      emit('pruebas', {});
+      return ok(true);
+    },
+
     admin_borrar_prueba: ({ p_player_id, p_prueba_id }) => {
       const player = players.find(p => p.id === p_player_id);
       if (!player || player.role !== 'admin') return fail('No autorizado');

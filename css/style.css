@@ -816,14 +816,17 @@ select option {
 
 /* ---------- Galería ---------- */
 
+/* Masonry (vía CSS columns, sin JS): 2 columnas, cada foto con su
+   proporción natural en vez de recortada a cuadrado. */
 .galeria-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  column-count: 2;
+  column-gap: 8px;
 }
 .galeria-item {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  display: block;
+  break-inside: avoid;
+  margin-bottom: 8px;
   border-radius: 14px;
   overflow: hidden;
   border: 1.5px solid var(--card-border);
@@ -832,18 +835,21 @@ select option {
   background: var(--bg-soft);
   transition: transform 0.12s ease;
 }
-.galeria-item:active { transform: scale(0.93); }
-.galeria-item-img { aspect-ratio: 1 / 1; overflow: hidden; }
+.galeria-item:active { transform: scale(0.96); }
+.galeria-item img { display: block; width: 100%; height: auto; }
 .galeria-item-titulo {
-  padding: 6px;
-  font-size: 0.68rem;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 6px 6px 5px;
+  font-size: 0.62rem;
   font-weight: 700;
-  color: var(--text);
+  color: #fff;
   line-height: 1.2;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  background: linear-gradient(to top, rgba(10, 5, 20, 0.85), rgba(10, 5, 20, 0));
 }
 
 .galeria-vacia {
@@ -853,21 +859,21 @@ select option {
   text-align: center;
   gap: 8px;
   padding: 24px 0;
-  grid-column: 1 / -1;
+  column-span: all;
 }
 .galeria-vacia-icono { font-size: 2.4rem; color: var(--text-dim); }
 .galeria-vacia .subtitle { margin: 0; }
-.galeria-item-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* Sin recorte ni letterboxing: la foto se ve con sus proporciones
+   reales (ancho 100%, alto el que le toque), nada de márgenes. */
 .galeria-foto-wrap {
   position: relative;
   margin: -20px;
   border-radius: 24px;
   overflow: hidden;
-  background: #000;
 }
-.galeria-foto-wrap > a { display: block; cursor: zoom-in; }
-.galeria-foto-grande { display: block; width: 100%; max-height: 60vh; object-fit: contain; }
+.galeria-foto-wrap > a { display: block; cursor: zoom-in; line-height: 0; }
+.galeria-foto-grande { display: block; width: 100%; height: auto; }
 .galeria-foto-descargar {
   position: absolute;
   top: 10px;
@@ -978,7 +984,23 @@ select option {
 }
 
 .foto-input-oculto { display: none; }
-.foto-picker-btn { margin-top: 6px; }
+.foto-picker-row { display: flex; gap: 8px; margin-top: 6px; }
+.foto-btn-camara { flex: 1; }
+.foto-btn-archivo {
+  flex-shrink: 0;
+  width: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--card-border);
+  border-radius: 16px;
+  background: var(--bg-soft);
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.08s ease;
+}
+.foto-btn-archivo:active { transform: scale(0.92); }
 .foto-preview-wrap {
   position: relative;
   margin: -4px 0 14px;

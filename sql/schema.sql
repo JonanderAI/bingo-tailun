@@ -847,6 +847,26 @@ $$;
 
 grant execute on function admin_editar_prueba(uuid, uuid, text, text) to anon;
 
+-- Quitar la foto de recuerdo de una prueba
+create or replace function admin_quitar_foto_prueba(p_player_id uuid, p_prueba_id uuid)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+begin
+  select p.role into v_role from players p where p.id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+  update pruebas set foto_url = null where id = p_prueba_id and not libre;
+  return true;
+end;
+$$;
+
+grant execute on function admin_quitar_foto_prueba(uuid, uuid) to anon;
+
 -- Borrar una prueba enviada. Si el bingo ya ha empezado, no se borra la
 -- fila (dejaría la casilla vacía y descuadraría el tablero): se
 -- convierte en comodín en su misma posición.

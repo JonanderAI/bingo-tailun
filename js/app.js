@@ -672,7 +672,7 @@ function renderGaleria() {
   }
   cont.innerHTML = fotos.map(p => `
     <div class="galeria-item" data-foto-id="${p.id}">
-      <div class="galeria-item-img"><img src="${escapeHtml(p.foto_url)}" alt="" loading="lazy" /></div>
+      <img src="${escapeHtml(p.foto_url)}" alt="" loading="lazy" />
       <div class="galeria-item-titulo">${escapeHtml(p.texto || '')}</div>
     </div>
   `).join('');
@@ -940,6 +940,35 @@ async function abrirCelda(prueba, ev) {
   $('#btn-ha-pasado').addEventListener('click', () => abrirModalElegirResponsable(prueba.id));
 }
 
+// Selector de foto reutilizable: un botón grande "Hacer foto" (fuerza
+// la cámara) y, al lado, un icono para subir un archivo/de la galería.
+function htmlSelectorFoto(idCamara, idArchivo) {
+  return `
+    <label class="field">
+      <span><i class="fa-solid fa-camera"></i> Foto de recuerdo (opcional)</span>
+      <div class="foto-picker-row">
+        <label for="${idCamara}" class="btn btn-ghost foto-btn-camara">
+          <i class="fa-solid fa-camera"></i> Hacer foto
+        </label>
+        <label for="${idArchivo}" class="foto-btn-archivo" title="Subir archivo">
+          <i class="fa-solid fa-upload"></i>
+        </label>
+      </div>
+      <input type="file" id="${idCamara}" accept="image/*" capture="environment" class="foto-input-oculto" />
+      <input type="file" id="${idArchivo}" accept="image/*" class="foto-input-oculto" />
+    </label>
+  `;
+}
+
+function initSelectorFoto(idCamara, idArchivo, onFile) {
+  const manejarCambio = (e) => {
+    const file = e.target.files[0];
+    if (file) onFile(file);
+  };
+  $(`#${idCamara}`).addEventListener('change', manejarCambio);
+  $(`#${idArchivo}`).addEventListener('change', manejarCambio);
+}
+
 function abrirModalElegirResponsable(pruebaId) {
   let fotoSeleccionada = null;
   const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
@@ -949,13 +978,7 @@ function abrirModalElegirResponsable(pruebaId) {
       <label class="field">
         <select id="select-cumplidor">${opciones}</select>
       </label>
-      <label class="field">
-        <span><i class="fa-solid fa-camera"></i> Foto de recuerdo (opcional)</span>
-        <label for="foto-recuerdo" class="btn btn-ghost btn-block foto-picker-btn">
-          <i class="fa-solid fa-camera"></i> Sacar foto / elegir archivo
-        </label>
-        <input type="file" id="foto-recuerdo" accept="image/*" class="foto-input-oculto" />
-      </label>
+      ${htmlSelectorFoto('foto-camara', 'foto-archivo')}
       <div id="foto-preview-wrap" class="foto-preview-wrap hidden">
         <img id="foto-preview-img" class="foto-preview-img" alt="" />
         <button type="button" id="foto-quitar" class="icon-btn foto-quitar" title="Quitar foto"><i class="fa-solid fa-xmark"></i></button>
@@ -965,16 +988,15 @@ function abrirModalElegirResponsable(pruebaId) {
       </button>
     </div>
   `);
-  $('#foto-recuerdo').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  initSelectorFoto('foto-camara', 'foto-archivo', (file) => {
     fotoSeleccionada = file;
     $('#foto-preview-img').src = URL.createObjectURL(file);
     $('#foto-preview-wrap').classList.remove('hidden');
   });
   $('#foto-quitar').addEventListener('click', () => {
     fotoSeleccionada = null;
-    $('#foto-recuerdo').value = '';
+    $('#foto-camara').value = '';
+    $('#foto-archivo').value = '';
     $('#foto-preview-wrap').classList.add('hidden');
   });
   $('#btn-marcar-cumplida').addEventListener('click', async () => {
@@ -1182,26 +1204,30 @@ function abrirModalEditarPrueba(p) {
       <label class="field">
         <textarea id="pa-texto" rows="3" maxlength="200" required>${escapeHtml(p.texto)}</textarea>
       </label>
-      <label class="field">
-        <span><i class="fa-solid fa-camera"></i> Foto de recuerdo (opcional)</span>
-        <label for="pa-foto" class="btn btn-ghost btn-block foto-picker-btn">
-          <i class="fa-solid fa-camera"></i> ${p.foto_url ? 'Cambiar foto' : 'Sacar foto / elegir archivo'}
-        </label>
-        <input type="file" id="pa-foto" accept="image/*" class="foto-input-oculto" />
-      </label>
+      ${htmlSelectorFoto('pa-foto-camara', 'pa-foto-archivo')}
       <div id="pa-foto-preview-wrap" class="foto-preview-wrap ${p.foto_url ? '' : 'hidden'}">
         <img id="pa-foto-preview-img" class="foto-preview-img" alt="" src="${p.foto_url ? escapeHtml(p.foto_url) : ''}" />
+        ${p.foto_url ? '<button type="button" id="pa-foto-quitar" class="icon-btn foto-quitar" title="Quitar foto"><i class="fa-solid fa-xmark"></i></button>' : ''}
       </div>
       <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
       <p id="pa-error" class="error-msg hidden"></p>
     </form>
   `);
-  $('#pa-foto').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  initSelectorFoto('pa-foto-camara', 'pa-foto-archivo', (file) => {
     fotoSeleccionada = file;
     $('#pa-foto-preview-img').src = URL.createObjectURL(file);
     $('#pa-foto-preview-wrap').classList.remove('hidden');
+  });
+  $('#pa-foto-quitar')?.addEventListener('click', async () => {
+    if (!confirm('¿Quitar la foto de esta prueba?')) return;
+    const { error } = await supabaseClient.rpc('admin_quitar_foto_prueba', {
+      p_player_id: state.player.id, p_prueba_id: p.id,
+    });
+    if (error) { mostrarToast(error.message); return; }
+    fotoSeleccionada = null;
+    $('#pa-foto-preview-wrap').classList.add('hidden');
+    mostrarToast('Foto quitada');
+    await refrescarTrasCambioPruebas();
   });
   $('#form-prueba-admin').addEventListener('submit', async (e) => {
     e.preventDefault();
