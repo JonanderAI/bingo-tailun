@@ -811,7 +811,7 @@ function initAdminActions() {
     state.inicioAt = null;
     renderAdmin();
     renderTablero();
-    mostrarToast('Cuenta atrás reiniciada, elige una nueva fecha');
+    mostrarToast('Elige una nueva fecha y hora');
   });
 
   $('#btn-crear-usuario').addEventListener('click', abrirModalCrearUsuario);
