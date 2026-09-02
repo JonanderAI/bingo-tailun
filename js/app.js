@@ -649,7 +649,7 @@ function renderTablero() {
 
 function renderGaleria() {
   const tab = $('#tab-galeria');
-  const puedeVerGaleria = state.player?.role === 'admin' && state.fase !== 'submission';
+  const puedeVerGaleria = state.player?.role === 'admin';
   if (tab) tab.classList.toggle('hidden', !puedeVerGaleria);
 
   const cont = $('#galeria-grid');

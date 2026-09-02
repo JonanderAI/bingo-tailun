@@ -464,7 +464,6 @@ select option {
   background: transparent;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border-top: 1px solid var(--card-border);
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
 }
 
