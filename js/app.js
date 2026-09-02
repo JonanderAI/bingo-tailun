@@ -612,12 +612,14 @@ function renderRanking() {
   const medallas = ['🥇', '🥈', '🥉'];
   const podio = ranking.slice(0, 3).map((r, i) => `
     <div class="podio-item">
-      <span class="podio-avatar">${escapeHtml(r.jugador.avatar)}</span>
+      <span class="podio-avatar-wrap">
+        <span class="podio-avatar">${escapeHtml(r.jugador.avatar)}</span>
+        <span class="podio-medalla">${medallas[i]}</span>
+      </span>
       <span class="podio-nombre-fila">
-        <span class="podio-puesto">${medallas[i]}</span>
+        <span class="podio-conteo">${r.n}</span>
         <span class="podio-nombre">${escapeHtml(r.jugador.name)}</span>
       </span>
-      <span class="podio-conteo">${r.n}</span>
     </div>
   `).join('');
 

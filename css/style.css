@@ -699,9 +699,10 @@ select option {
 .podio-item:nth-child(1) { border-color: var(--primary); }
 .podio-item:nth-child(2) { border-color: var(--accent); }
 .podio-item:nth-child(3) { border-color: var(--accent-2); }
+.podio-avatar-wrap { position: relative; display: inline-flex; }
 .podio-avatar { font-size: 1.8rem; line-height: 1; }
+.podio-medalla { position: absolute; bottom: -5px; right: -8px; font-size: 1rem; line-height: 1; }
 .podio-nombre-fila { display: flex; align-items: center; gap: 4px; max-width: 100%; }
-.podio-puesto { font-size: 1rem; line-height: 1; flex-shrink: 0; }
 .podio-nombre {
   font-weight: 800;
   font-size: 0.75rem;
@@ -709,7 +710,10 @@ select option {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.podio-conteo { font-weight: 800; color: var(--text-dim); font-size: 0.85rem; }
+.podio-conteo { font-weight: 800; font-size: 0.85rem; flex-shrink: 0; }
+.podio-item:nth-child(1) .podio-conteo { color: var(--primary); }
+.podio-item:nth-child(2) .podio-conteo { color: var(--accent); }
+.podio-item:nth-child(3) .podio-conteo { color: var(--accent-2); }
 
 /* Fuera del flujo flex: así no compite por altura con las 3 líneas del
    texto, que si no se veían recortadas por el nombre del culpable en
