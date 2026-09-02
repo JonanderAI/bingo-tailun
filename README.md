@@ -9,8 +9,8 @@ la fecha y hora de inicio (sin pulsar ningún botón "arrancar"): en cuanto
 llega esa hora, el bingo empieza solo, rellenando con comodines las
 casillas que se hayan quedado sin prueba. El admin o quien mandó cada
 prueba puede destaparla cuando pasa (eligiendo antes quién ha sido el
-involucrado): entonces se muestra a todo el mundo y bebe solo el
-involucrado. Cuando se completa una línea o el tablero entero, bebéis
+culpable): entonces se muestra a todo el mundo y bebe solo el
+culpable. Cuando se completa una línea o el tablero entero, bebéis
 todos.
 
 Es una PWA instalable: al entrar o crear cuenta se ofrece instalarla
@@ -88,9 +88,9 @@ caché del navegador y de la CDN de GitHub Pages.
 - **Admin o propietario, cada prueba**: no hay encargados fijos por
   prueba. Cualquier cuenta con rol admin, o quien la mandó, puede
   destaparla cuando pasa: se pulsa "Ha pasado", se elige en un segundo
-  paso quién ha sido el involucrado, y se marca cumplida a la vez → lluvia
+  paso quién ha sido el culpable, y se marca cumplida a la vez → lluvia
   de emojis 🧨🔥😈🦀🦭 para todo el mundo.
-- **Cumplir una prueba**: chupito solo para el involucrado elegido (aviso
+- **Cumplir una prueba**: chupito solo para el culpable elegido (aviso
   para todos), quien la destapó no bebe.
 - **Línea / Bingo**: se detecta automáticamente al completar una fila,
   columna o el tablero entero → aviso de "todos bebéis" para todo el mundo.

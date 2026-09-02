@@ -474,6 +474,22 @@ function renderTablero() {
     }
   }
 
+  // Barra de fondo que une visualmente las casillas de cada línea
+  // completada (por detrás de las celdas, se ven en los huecos entre
+  // ellas). Van primero en el DOM para quedar debajo de las celdas.
+  filasCompletas.forEach((f) => {
+    const bar = document.createElement('div');
+    bar.className = 'linea-bar linea-fila';
+    bar.style.top = `${((f + 0.5) / lado) * 100}%`;
+    grid.appendChild(bar);
+  });
+  colsCompletas.forEach((c) => {
+    const bar = document.createElement('div');
+    bar.className = 'linea-bar linea-col';
+    bar.style.left = `${((c + 0.5) / lado) * 100}%`;
+    grid.appendChild(bar);
+  });
+
   for (let i = 0; i < state.boardSize; i++) {
     const prueba = state.pruebas.find(p => p.position === i);
     const cell = document.createElement('div');
@@ -507,7 +523,7 @@ function renderTablero() {
       cell.innerHTML = `<i class="fa-solid fa-bomb cell-icon-bg cell-icon-vacia"></i>`;
     } else if (prueba.libre) {
       cell.classList.add('libre-cell');
-      cell.innerHTML = `<i class="fa-solid fa-gift cell-icon-bg cell-icon-vacia"></i><span class="cell-text">${escapeHtml(prueba.texto || 'Comodín')}</span>`;
+      cell.innerHTML = `<i class="fa-solid fa-gift cell-icon-bg cell-icon-vacia"></i>`;
     } else if (prueba.completada) {
       cell.classList.add('completed-cell');
       cell.innerHTML = `<i class="fa-solid fa-burst cell-icon-bg cell-icon-vacia"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>`;
@@ -605,7 +621,7 @@ async function abrirCelda(prueba, ev) {
   }
 
   // oculta: solo se puede destapar cuando ya ha pasado, y hay que elegir
-  // a la vez quién ha sido el involucrado (admin o quien mandó la prueba).
+  // a la vez quién ha sido el culpable (admin o quien mandó la prueba).
   if (!autorizado) {
     abrirModal(`
       <div class="modal-emoji-header">${escapeHtml(avatarDe(prueba.submitted_by))}</div>
@@ -649,7 +665,7 @@ async function abrirCelda(prueba, ev) {
 function abrirModalElegirResponsable(pruebaId) {
   const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
   abrirModal(`
-    <h3><i class="fa-solid fa-user-check"></i> ¿Quién ha sido el involucrado?</h3>
+    <h3><i class="fa-solid fa-user-check"></i> ¿Quién ha sido el culpable?</h3>
     <div class="modal-actions">
       <label class="field">
         <select id="select-cumplidor">${opciones}</select>
@@ -712,6 +728,7 @@ function renderAdmin() {
   } else {
     info.classList.add('hidden');
     cancelBtn.classList.add('hidden');
+    input.value = '';
   }
 }
 
