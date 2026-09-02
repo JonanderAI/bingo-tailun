@@ -644,6 +644,54 @@ function renderTablero() {
   }
 
   renderRanking();
+  renderGaleria();
+}
+
+function renderGaleria() {
+  const tab = $('#tab-galeria');
+  const puedeVerGaleria = state.player?.role === 'admin' && state.fase !== 'submission';
+  if (tab) tab.classList.toggle('hidden', !puedeVerGaleria);
+
+  const cont = $('#galeria-grid');
+  if (!cont) return;
+  const fotos = state.pruebas
+    .filter(p => p.foto_url)
+    .sort((a, b) => new Date(b.completada_at || 0) - new Date(a.completada_at || 0));
+
+  if (fotos.length === 0) {
+    cont.innerHTML = '<p class="subtitle small">Todavía no hay fotos de recuerdo.</p>';
+    return;
+  }
+  cont.innerHTML = fotos.map(p => `
+    <div class="galeria-item" data-foto-id="${p.id}">
+      <img src="${escapeHtml(p.foto_url)}" alt="" loading="lazy" />
+    </div>
+  `).join('');
+  cont.querySelectorAll('[data-foto-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const p = fotos.find(x => x.id === el.dataset.fotoId);
+      if (p) abrirFotoGaleria(p);
+    });
+  });
+}
+
+function abrirFotoGaleria(prueba) {
+  const fecha = prueba.completada_at
+    ? new Date(prueba.completada_at).toLocaleString('es-ES', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+    : '';
+  abrirModal(`
+    <div class="galeria-foto-wrap">
+      <img src="${escapeHtml(prueba.foto_url)}" class="galeria-foto-grande" alt="" />
+      <div class="galeria-foto-caption">
+        <div class="galeria-foto-titulo">${escapeHtml(prueba.texto || '')}</div>
+        <div class="galeria-foto-meta">
+          <span><i class="fa-solid fa-user"></i> ${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>
+          <span>&middot;</span>
+          <span><i class="fa-solid fa-clock"></i> ${fecha}</span>
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 function renderRanking() {
