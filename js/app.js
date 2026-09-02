@@ -950,7 +950,7 @@ function htmlSelectorFoto(idCamara, idArchivo) {
         <label for="${idCamara}" class="btn btn-ghost foto-btn-camara">
           <i class="fa-solid fa-camera"></i> Hacer foto
         </label>
-        <label for="${idArchivo}" class="foto-btn-archivo" title="Subir archivo">
+        <label for="${idArchivo}" class="btn btn-ghost foto-btn-archivo" title="Subir archivo">
           <i class="fa-solid fa-upload"></i>
         </label>
       </div>

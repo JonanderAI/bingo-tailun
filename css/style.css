@@ -225,6 +225,7 @@ h2 i, h3 i { margin-right: 8px; }
 /* ---------- Layout ---------- */
 
 #app-root {
+  width: 100%;
   max-width: 640px;
   margin: 0 auto;
   /* Sin padding arriba: el hueco bajo la cabecera lo pone ya su propio
@@ -480,9 +481,11 @@ select option {
   background: none;
   border: none;
   color: var(--text-dim);
+  font-family: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 8px;
   font-size: 0.72rem;
@@ -819,6 +822,7 @@ select option {
 /* Masonry (vía CSS columns, sin JS): 2 columnas, cada foto con su
    proporción natural en vez de recortada a cuadrado. */
 .galeria-grid {
+  width: 100%;
   column-count: 2;
   column-gap: 8px;
 }
@@ -959,6 +963,7 @@ select option {
 #modal-content > *:first-child { margin-top: 0; }
 #modal-content > .galeria-foto-wrap:first-child { margin-top: -20px; }
 #modal-content > *:last-child { margin-bottom: 0; }
+#modal-content > .galeria-foto-wrap:last-child { margin-bottom: -20px; }
 .modal-emoji-header { font-size: 3rem; text-align: center; line-height: 1; margin-bottom: 4px; }
 .modal-emoji-header + h3 { text-align: center; }
 .modal .modal-texto {
@@ -986,21 +991,7 @@ select option {
 .foto-input-oculto { display: none; }
 .foto-picker-row { display: flex; gap: 8px; margin-top: 6px; }
 .foto-btn-camara { flex: 1; }
-.foto-btn-archivo {
-  flex-shrink: 0;
-  width: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid var(--card-border);
-  border-radius: 16px;
-  background: var(--bg-soft);
-  color: var(--text-dim);
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: color 0.15s ease, transform 0.08s ease;
-}
-.foto-btn-archivo:active { transform: scale(0.92); }
+.foto-btn-archivo { flex-shrink: 0; width: 54px; padding: 13px 0; font-size: 1.1rem; }
 .foto-preview-wrap {
   position: relative;
   margin: -4px 0 14px;
