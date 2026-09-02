@@ -265,6 +265,24 @@ body.has-tabs #app-root {
 .subtitle { color: var(--text-dim); margin: 4px 0 16px; font-size: 0.95rem; }
 .subtitle.small { font-size: 0.85rem; margin-bottom: 10px; }
 
+/* Título + subtítulo de una sección, con el icono a la izquierda de
+   los dos (en vez de pegado al título en la misma línea). */
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.section-header .section-icon {
+  font-size: 1.4rem;
+  color: var(--accent);
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.section-header .section-titles { min-width: 0; }
+.section-header h2, .section-header h3 { margin: 0; }
+.section-header .subtitle { margin: 4px 0 0; }
+
 /* ---------- Login ---------- */
 
 .login-card { text-align: center; }

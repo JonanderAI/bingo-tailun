@@ -4,11 +4,15 @@
 
 const SESSION_KEY = 'bingo_tailun_session';
 const MAX_PRUEBAS_POR_JUGADOR = 2;
+// Tablero fijo 6x6: ignoramos por completo lo que diga game_state.board_size
+// (puede quedar un valor viejo en la base de datos de cuando el tamaño era
+// dinámico) para que el grid nunca dependa de un dato que ya no pintamos.
+const LADO_TABLERO = 6;
+const BOARD_SIZE = LADO_TABLERO * LADO_TABLERO;
 
 const state = {
   player: null, // { id, name, role, avatar }
   fase: 'submission',
-  boardSize: 36,
   inicioAt: null, // fecha/hora programada de inicio (ISO) o null
   pruebas: [], // pruebas_publicas
   players: [], // players_publicos
@@ -211,7 +215,6 @@ async function cargarGameState() {
   const { data, error } = await supabaseClient.from('game_state').select('*').eq('id', 1).single();
   if (error) throw error;
   state.fase = data.fase;
-  state.boardSize = data.board_size;
   state.inicioAt = data.inicio_at;
 }
 
@@ -336,8 +339,13 @@ function renderMiAportacion() {
   }
 
   cont.innerHTML = `
-    <h3><i class="fa-solid fa-lightbulb"></i> Tus pruebas</h3>
-    <p class="subtitle small">Hasta ${MAX_PRUEBAS_POR_JUGADOR} pruebas por jugador.</p>
+    <div class="section-header">
+      <i class="fa-solid fa-lightbulb section-icon"></i>
+      <div class="section-titles">
+        <h3>Tus pruebas</h3>
+        <p class="subtitle small">El culpable de la prueba beberá un chupito</p>
+      </div>
+    </div>
     ${listaHtml}
     ${formHtml}
   `;
@@ -453,7 +461,7 @@ function renderTablero() {
   actualizarCuentaAtras();
   emptyMsg.classList.toggle('hidden', !enSubmission || !!state.inicioAt);
 
-  const lado = Math.round(Math.sqrt(state.boardSize));
+  const lado = LADO_TABLERO;
   grid.style.gridTemplateColumns = `repeat(${lado}, 1fr)`;
   grid.classList.toggle('grid-bloqueado', enSubmission);
   grid.innerHTML = '';
@@ -474,9 +482,9 @@ function renderTablero() {
     }
   }
 
-  const celdaEls = new Array(state.boardSize);
+  const celdaEls = new Array(BOARD_SIZE);
 
-  for (let i = 0; i < state.boardSize; i++) {
+  for (let i = 0; i < BOARD_SIZE; i++) {
     const prueba = state.pruebas.find(p => p.position === i);
     const cell = document.createElement('div');
     cell.className = 'bingo-cell';
@@ -603,8 +611,13 @@ function renderRanking() {
 
   if (ranking.length === 0) {
     card.innerHTML = `
-      <h3><i class="fa-solid fa-ranking-star"></i> Ranking de culpables</h3>
-      <p class="subtitle small">Todavía no ha bebido nadie.</p>
+      <div class="section-header">
+        <i class="fa-solid fa-ranking-star section-icon"></i>
+        <div class="section-titles">
+          <h3>Ranking de culpables</h3>
+          <p class="subtitle small">Todavía no ha bebido nadie.</p>
+        </div>
+      </div>
     `;
     return;
   }
@@ -636,7 +649,12 @@ function renderRanking() {
   `;
 
   card.innerHTML = `
-    <h3><i class="fa-solid fa-ranking-star"></i> Ranking de culpables</h3>
+    <div class="section-header">
+      <i class="fa-solid fa-ranking-star section-icon"></i>
+      <div class="section-titles">
+        <h3>Ranking de culpables</h3>
+      </div>
+    </div>
     <div class="podio">${podio}</div>
     ${listaResto}
   `;
