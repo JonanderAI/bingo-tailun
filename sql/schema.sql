@@ -541,7 +541,7 @@ as $$
 declare
   v_role text;
 begin
-  select role into v_role from players where id = p_player_id;
+  select p.role into v_role from players p where p.id = p_player_id;
   if v_role <> 'admin' then
     raise exception 'No autorizado';
   end if;
@@ -561,7 +561,7 @@ declare
   v_role text;
   v_new_id uuid;
 begin
-  select role into v_role from players where id = p_player_id;
+  select p.role into v_role from players p where p.id = p_player_id;
   if v_role <> 'admin' then
     raise exception 'No autorizado';
   end if;
