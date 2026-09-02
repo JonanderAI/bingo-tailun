@@ -484,7 +484,9 @@ function renderTablero() {
     if (filasCompletas.has(Math.floor(i / lado)) || colsCompletas.has(i % lado)) {
       cell.classList.add('en-linea');
     }
-    if (prueba && prueba.submitted_by === state.player.id) {
+    // El punto de "es tuya" solo mientras sigue oculta: una vez
+    // destapada ya se ve el texto, no hace falta seguir marcándola.
+    if (prueba && prueba.submitted_by === state.player.id && !prueba.revealed && !prueba.completada) {
       cell.classList.add('mia');
     }
 
@@ -610,9 +612,11 @@ function renderRanking() {
   const medallas = ['🥇', '🥈', '🥉'];
   const podio = ranking.slice(0, 3).map((r, i) => `
     <div class="podio-item">
-      <span class="podio-puesto">${medallas[i]}</span>
       <span class="podio-avatar">${escapeHtml(r.jugador.avatar)}</span>
-      <span class="podio-nombre">${escapeHtml(r.jugador.name)}</span>
+      <span class="podio-nombre-fila">
+        <span class="podio-puesto">${medallas[i]}</span>
+        <span class="podio-nombre">${escapeHtml(r.jugador.name)}</span>
+      </span>
       <span class="podio-conteo">${r.n}</span>
     </div>
   `).join('');
@@ -817,18 +821,22 @@ function renderAdmin() {
   const cancelBtn = $('#btn-cancelar-programacion');
   const input = $('#programar-fecha');
   const reiniciarBtn = $('#btn-reiniciar-bingo');
+  const volverBtn = $('#btn-volver-envios');
 
   if (state.fase !== 'submission') {
-    // Ya no se puede programar ni cancelar/reiniciar el temporizador
-    // una vez empezado el bingo (no hace nada, el inicio ya pasó).
+    // Ya no se puede programar ni cancelar/reprogramar el temporizador
+    // una vez empezado el bingo (no hace nada, el inicio ya pasó). En su
+    // lugar se puede volver a la fase de envíos si hace falta.
     info.classList.add('hidden');
     cancelBtn.classList.add('hidden');
     reiniciarBtn.classList.add('hidden');
     $('#programar-form').classList.add('hidden');
+    volverBtn.classList.remove('hidden');
     return;
   }
   $('#programar-form').classList.remove('hidden');
   reiniciarBtn.classList.remove('hidden');
+  volverBtn.classList.add('hidden');
 
   if (state.inicioAt) {
     const d = new Date(state.inicioAt);
@@ -877,6 +885,19 @@ function initAdminActions() {
     renderAdmin();
     renderTablero();
     mostrarToast('Elige una nueva fecha y hora');
+  });
+
+  $('#btn-volver-envios').addEventListener('click', async () => {
+    if (!confirm('Se aceptarán pruebas nuevas otra vez. Las pruebas y casillas ya asignadas se mantienen, solo se borran los comodines. ¿Seguro?')) return;
+    const { error } = await supabaseClient.rpc('volver_a_envios', { p_player_id: state.player.id });
+    if (error) { mostrarToast(error.message); return; }
+    state.fase = 'submission';
+    state.inicioAt = null;
+    await Promise.all([cargarPruebas(), cargarMisPruebas()]);
+    renderAdmin();
+    renderTablero();
+    renderMiAportacion();
+    mostrarToast('De vuelta a la fase de envíos');
   });
 
   $('#btn-crear-usuario').addEventListener('click', abrirModalCrearUsuario);

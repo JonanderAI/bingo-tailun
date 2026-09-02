@@ -327,6 +327,18 @@ function crearClienteMock() {
       return ok(true);
     },
 
+    volver_a_envios: ({ p_player_id }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('Solo el admin puede volver a la fase de envíos');
+      pruebas = pruebas.filter(p => !p.libre);
+      gameState.fase = 'submission';
+      gameState.inicio_at = null;
+      gameState.updated_at = new Date().toISOString();
+      emit('pruebas', {});
+      emit('game_state', {});
+      return ok(true);
+    },
+
     listar_jugadores_admin: ({ p_player_id }) => {
       const player = players.find(p => p.id === p_player_id);
       if (!player || player.role !== 'admin') return fail('No autorizado');

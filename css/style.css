@@ -633,7 +633,8 @@ select option {
 
 .bingo-cell.en-linea { border-color: var(--success); }
 
-/* Punto en tus propias pruebas, para identificarlas de un vistazo: del
+/* Punto en tus propias pruebas mientras siguen ocultas (una vez
+   destapada ya se ve el texto, no hace falta seguir marcándola): del
    mismo color que el borde de esa casilla en cada estado. */
 .bingo-cell.mia::after {
   content: '';
@@ -647,9 +648,6 @@ select option {
   background: var(--card-border);
 }
 .bingo-cell.puede-ver.mia::after { background: var(--accent); }
-.bingo-cell.revealed-cell.mia::after { background: var(--accent-2); }
-.bingo-cell.completed-cell.mia::after { background: var(--primary); }
-.bingo-cell.en-linea.mia::after { background: var(--success); }
 
 /* Fase de envíos: tablero visible pero bloqueado, nada que destapar todavía */
 .bingo-grid.grid-bloqueado .bingo-cell { cursor: default; }
@@ -684,23 +682,34 @@ select option {
 
 /* ---------- Ranking de culpables ---------- */
 
-.podio { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.podio { display: flex; gap: 8px; margin-bottom: 10px; }
 .podio-item {
+  flex: 1;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  text-align: center;
+  gap: 4px;
+  padding: 12px 6px;
   border: 1.5px solid var(--card-border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--bg-soft);
 }
 .podio-item:nth-child(1) { border-color: var(--primary); }
 .podio-item:nth-child(2) { border-color: var(--accent); }
 .podio-item:nth-child(3) { border-color: var(--accent-2); }
-.podio-puesto { font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
-.podio-avatar { font-size: 1.2rem; line-height: 1; flex-shrink: 0; }
-.podio-nombre { flex: 1; min-width: 0; font-weight: 800; font-size: 0.9rem; }
-.podio-conteo { font-weight: 800; color: var(--text-dim); flex-shrink: 0; }
+.podio-avatar { font-size: 1.8rem; line-height: 1; }
+.podio-nombre-fila { display: flex; align-items: center; gap: 4px; max-width: 100%; }
+.podio-puesto { font-size: 1rem; line-height: 1; flex-shrink: 0; }
+.podio-nombre {
+  font-weight: 800;
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.podio-conteo { font-weight: 800; color: var(--text-dim); font-size: 0.85rem; }
 
 /* Fuera del flujo flex: así no compite por altura con las 3 líneas del
    texto, que si no se veían recortadas por el nombre del culpable en

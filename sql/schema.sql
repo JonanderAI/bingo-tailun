@@ -614,6 +614,30 @@ $$;
 
 grant execute on function reiniciar_bingo(uuid) to anon;
 
+-- Volver a la fase de envíos aunque el bingo ya haya empezado: se
+-- mantienen las pruebas y sus posiciones (para no perder el trabajo de
+-- todos), solo se borran los comodines, que se volverán a rellenar
+-- cuando se vuelva a empezar.
+create or replace function volver_a_envios(p_player_id uuid)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+begin
+  select role into v_role from players where id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'Solo el admin puede volver a la fase de envíos';
+  end if;
+  delete from pruebas where libre = true;
+  update game_state set fase = 'submission', inicio_at = null, updated_at = now() where id = 1;
+  return true;
+end;
+$$;
+
+grant execute on function volver_a_envios(uuid) to anon;
+
 -- ---------- GESTIÓN DE USUARIOS (admin) ----------
 
 -- Listado completo de jugadores, con PIN incluido: solo para el admin,
