@@ -104,7 +104,7 @@ function cambiarVista(id) {
   $('#app-header').classList.toggle('hidden', id === 'view-login');
 }
 
-const ICONOS_CARGA = ['pizza-slice', 'beer-mug-empty', 'bomb', 'poo', 'yin-yang', 'burger', 'trophy', 'futbol'];
+const ICONOS_CARGA = ['pizza-slice', 'beer-mug-empty', 'bomb', 'poo', 'yin-yang', 'burger', 'trophy', 'futbol', 'hat-wizard', 'toilet-paper'];
 
 function mostrarCargando(mostrar) {
   const overlay = $('#loading-overlay');
