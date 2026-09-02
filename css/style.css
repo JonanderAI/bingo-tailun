@@ -1,31 +1,6 @@
+/* ---------- Tema: siempre oscuro (modo festivo) ---------- */
+
 :root {
-  --bg: #f6f4ff;
-  --bg-soft: #efeaff;
-  --card: #ffffff;
-  --card-border: #e7e1fb;
-  --text: #372f56;
-  --text-dim: #7a72a0;
-  --primary: #ff5d7a;
-  --primary-dark: #e8425f;
-  --accent: #ffb43d;
-  --accent-2: #17c3b2;
-  --violet: #7c5cff;
-  --danger: #ef4444;
-  --success: #17c3b2;
-  --radius: 20px;
-  --shadow: 0 10px 26px rgba(124, 92, 255, 0.12);
-  --blob-1: rgba(255, 180, 61, 0.18);
-  --blob-2: rgba(124, 92, 255, 0.16);
-  --notice-bg: rgba(255, 180, 61, 0.14);
-  --notice-border: rgba(255, 180, 61, 0.4);
-  --notice-text: #a06400;
-  --success-text: #0e9c8e;
-  --surface-translucent: rgba(255, 255, 255, 0.95);
-}
-
-/* ---------- Tema noche (a partir de las 21h, modo festivo) ---------- */
-
-body.tema-noche {
   --bg: #10091f;
   --bg-soft: #1a1130;
   --card: #201736;
@@ -37,6 +12,9 @@ body.tema-noche {
   --accent: #ffb347;
   --accent-2: #57e6c9;
   --violet: #9d7bff;
+  --danger: #ef4444;
+  --success: #57e6c9;
+  --radius: 20px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   --blob-1: rgba(255, 93, 162, 0.25);
   --blob-2: rgba(23, 195, 178, 0.2);

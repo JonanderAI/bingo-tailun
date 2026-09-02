@@ -70,14 +70,6 @@ function initInstalarBoton() {
   });
 }
 
-// ---------- tema día / noche ----------
-
-function actualizarTemaPorHora() {
-  const hora = new Date().getHours();
-  const esNoche = hora >= 21 || hora < 7;
-  document.body.classList.toggle('tema-noche', esNoche);
-}
-
 // ---------- utilidades ----------
 
 function $(sel) { return document.querySelector(sel); }
@@ -653,9 +645,6 @@ async function arrancarApp(player) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  actualizarTemaPorHora();
-  setInterval(actualizarTemaPorHora, 60_000);
-
   initLoginSwitch();
   initLoginForm();
   initRegistroForm();

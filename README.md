@@ -15,8 +15,7 @@ Es una PWA instalable: al entrar o crear cuenta se ofrece instalarla
 explica cómo hacerlo desde Compartir → Añadir a pantalla de inicio. Se
 instala como **Tailún el malvado** con icono 😈.
 
-De noche (21:00–07:00) la app cambia sola a un tema oscuro festivo; el
-resto del día usa el tema claro.
+Tema oscuro festivo fijo, todo el rato.
 
 ## 1. Crear el proyecto en Supabase
 
@@ -87,7 +86,7 @@ refresh, por caché del navegador y de la CDN de GitHub Pages.
 
 ```
 index.html            vista única: login/registro, tablero + admin
-css/style.css          estilos (mobile-first, tema día/noche)
+css/style.css          estilos (mobile-first, tema oscuro fijo)
 js/config.js           credenciales de Supabase (rellenar)
 js/mock.js              cliente falso para el modo demo (sin BBDD)
 js/supabaseClient.js    elige cliente real o demo según config.js
