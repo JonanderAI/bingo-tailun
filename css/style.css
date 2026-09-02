@@ -595,7 +595,6 @@ select option {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   color: var(--text);
-  margin-bottom: 3px;
 }
 
 .bingo-cell.hidden-cell { background: linear-gradient(160deg, #2a1c4a, var(--bg-soft)); }
@@ -665,7 +664,24 @@ select option {
 .regla-item:last-child { margin-bottom: 0; }
 .regla-item i { color: var(--accent-2); font-size: 1.1rem; flex-shrink: 0; }
 
-.cumplidor-tag { position: relative; z-index: 1; font-size: 0.55rem; color: var(--text-dim); margin-top: 2px; font-weight: 700; }
+/* Fuera del flujo flex: así no compite por altura con las 3 líneas del
+   texto, que si no se veían recortadas por el nombre del culpable en
+   casillas pequeñas. Se reserva su hueco con el padding-bottom de abajo. */
+.bingo-cell.completed-cell { padding-bottom: 16px; }
+.cumplidor-tag {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  z-index: 1;
+  font-size: 0.5rem;
+  color: var(--text-dim);
+  font-weight: 700;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 /* ---------- Admin: asignaciones ---------- */
 
