@@ -750,7 +750,8 @@ function initAdminActions() {
   });
 
   $('#btn-reiniciar-bingo').addEventListener('click', async () => {
-    if (!confirm('¿Cancelar la cuenta atrás programada?')) return;
+    // Ya no borra nada (solo cancela el temporizador), así que no hace
+    // falta confirmación: total, es lo mismo que "Cancelar programación".
     const { error } = await supabaseClient.rpc('reiniciar_bingo', { p_player_id: state.player.id });
     if (error) { mostrarToast(error.message); return; }
     mostrarToast('Cuenta atrás reiniciada');

@@ -562,6 +562,7 @@ select option {
   padding: 6px 4px;
   cursor: pointer;
   position: relative;
+  z-index: 1;
   overflow: hidden;
   transition: transform 0.12s;
 }
@@ -620,9 +621,11 @@ select option {
 .bingo-cell.completed-cell .cell-icon-bg { color: var(--primary); }
 
 /* El comodín solo se distingue por el icono de regalo: si no está en una
-   línea completada, su borde es igual que el de una casilla sin destapar. */
+   línea completada, su borde es igual que el de una casilla sin destapar,
+   y el icono es del mismo color que ese borde. */
 .bingo-cell.libre-cell { background: linear-gradient(160deg, rgba(124, 92, 255, 0.22), rgba(124, 92, 255, 0.06)); }
-.bingo-cell.libre-cell .cell-icon-bg { color: #fff; opacity: 0.9; }
+.bingo-cell.libre-cell .cell-icon-bg { color: var(--card-border); opacity: 0.9; }
+.bingo-cell.libre-cell.en-linea .cell-icon-bg { color: var(--success); }
 
 .bingo-cell.en-linea { border-color: var(--success); }
 
@@ -707,7 +710,7 @@ select option {
   background: var(--card);
   border: 2px solid var(--card-border);
   border-radius: 24px;
-  padding: 24px 20px;
+  padding: 20px;
   width: 100%;
   max-width: 420px;
   max-height: 85vh;
