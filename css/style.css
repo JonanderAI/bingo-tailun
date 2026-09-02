@@ -519,6 +519,7 @@ select option {
 .li-subtitulo { font-size: 0.78rem; font-weight: 700; color: var(--text-dim); display: flex; align-items: center; gap: 5px; }
 .li-subtitulo strong { color: var(--text); }
 .conteo-pruebas { color: var(--text-dim); font-weight: 700; font-size: 0.85em; }
+.icono-tiene-foto { color: var(--accent); font-size: 0.8em; }
 
 /* ---------- Tablero de bingo ---------- */
 
@@ -831,6 +832,18 @@ select option {
   transition: transform 0.12s ease;
 }
 .galeria-item:active { transform: scale(0.93); }
+
+.galeria-vacia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 24px 0;
+  grid-column: 1 / -1;
+}
+.galeria-vacia-icono { font-size: 2.4rem; color: var(--text-dim); }
+.galeria-vacia .subtitle { margin: 0; }
 .galeria-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .galeria-foto-wrap {
@@ -838,8 +851,24 @@ select option {
   margin: -20px -20px 0;
   border-radius: 24px 24px 0 0;
   overflow: hidden;
+  background: #000;
 }
-.galeria-foto-grande { display: block; width: 100%; max-height: 60vh; object-fit: cover; }
+.galeria-foto-wrap > a { display: block; cursor: zoom-in; }
+.galeria-foto-grande { display: block; width: 100%; max-height: 60vh; object-fit: contain; }
+.galeria-foto-descargar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(10, 5, 20, 0.55);
+  color: #fff;
+}
 .galeria-foto-caption {
   position: absolute;
   left: 0; right: 0; bottom: 0;
@@ -944,8 +973,9 @@ select option {
 .foto-preview-img {
   display: block;
   width: 100%;
-  max-height: 200px;
+  height: 200px;
   object-fit: cover;
+  object-position: center;
   border-radius: 14px;
   border: 1.5px solid var(--card-border);
 }

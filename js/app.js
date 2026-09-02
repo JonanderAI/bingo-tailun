@@ -654,12 +654,20 @@ function renderGaleria() {
 
   const cont = $('#galeria-grid');
   if (!cont) return;
-  const fotos = state.pruebas
-    .filter(p => p.foto_url)
+  // Usa la lista de admin (sin filtrar por revelada), así se ven también
+  // las fotos que el admin adjunta a pruebas que todavía no se han
+  // destapado, antes de que empiece el bingo.
+  const fotos = state.pruebasAdmin
+    .filter(p => !p.libre && p.foto_url)
     .sort((a, b) => new Date(b.completada_at || 0) - new Date(a.completada_at || 0));
 
   if (fotos.length === 0) {
-    cont.innerHTML = '<p class="subtitle small">Todavía no hay fotos de recuerdo.</p>';
+    cont.innerHTML = `
+      <div class="galeria-vacia">
+        <i class="fa-solid fa-question galeria-vacia-icono"></i>
+        <p class="subtitle small">Todavía no hay fotos de recuerdo.</p>
+      </div>
+    `;
     return;
   }
   cont.innerHTML = fotos.map(p => `
@@ -681,7 +689,12 @@ function abrirFotoGaleria(prueba) {
     : '';
   abrirModal(`
     <div class="galeria-foto-wrap">
-      <img src="${escapeHtml(prueba.foto_url)}" class="galeria-foto-grande" alt="" />
+      <a href="${escapeHtml(prueba.foto_url)}" target="_blank" rel="noopener" title="Abrir a tamaño completo (zoom)">
+        <img src="${escapeHtml(prueba.foto_url)}" class="galeria-foto-grande" alt="" />
+      </a>
+      <button type="button" class="icon-btn galeria-foto-descargar" id="btn-descargar-foto" title="Descargar foto">
+        <i class="fa-solid fa-download"></i>
+      </button>
       <div class="galeria-foto-caption">
         <div class="galeria-foto-titulo">${escapeHtml(prueba.texto || '')}</div>
         <div class="galeria-foto-meta">
@@ -692,6 +705,24 @@ function abrirFotoGaleria(prueba) {
       </div>
     </div>
   `);
+  $('#btn-descargar-foto').addEventListener('click', () => descargarFoto(prueba.foto_url));
+}
+
+async function descargarFoto(url) {
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'recuerdo-tailun.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+  } catch {
+    window.open(url, '_blank');
+  }
 }
 
 function renderRanking() {
@@ -1100,6 +1131,7 @@ async function cargarPruebasAdmin() {
   state.pruebasAdmin = data || [];
   renderPruebasAdmin(state.pruebasAdmin.filter(p => !p.libre));
   if (state.usuariosAdmin.length > 0) renderUsuarios(state.usuariosAdmin);
+  renderGaleria();
 }
 
 function estadoPruebaAdmin(p) {
@@ -1117,7 +1149,10 @@ function renderPruebasAdmin(lista) {
   cont.innerHTML = lista.map(p => `
     <div class="assign-item">
       <span class="assign-texto">
-        <span class="li-titulo">${escapeHtml(p.texto)}</span>
+        <span class="li-titulo">
+          ${escapeHtml(p.texto)}
+          ${p.foto_url ? '<i class="fa-solid fa-camera icono-tiene-foto" title="Tiene foto"></i>' : ''}
+        </span>
         <span class="li-subtitulo">${estadoPruebaAdmin(p)} &middot; de ${escapeHtml(nombreConAvatar(p.submitted_by))}</span>
       </span>
       <span class="row-actions">
