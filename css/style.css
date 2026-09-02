@@ -939,7 +939,7 @@ select option {
 .foto-picker-btn { margin-top: 6px; }
 .foto-preview-wrap {
   position: relative;
-  margin-top: -4px;
+  margin: -4px 0 14px;
 }
 .foto-preview-img {
   display: block;

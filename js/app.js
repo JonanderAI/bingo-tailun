@@ -922,7 +922,7 @@ function abrirModalElegirResponsable(pruebaId) {
         <label for="foto-recuerdo" class="btn btn-ghost btn-block foto-picker-btn">
           <i class="fa-solid fa-camera"></i> Sacar foto / elegir archivo
         </label>
-        <input type="file" id="foto-recuerdo" accept="image/*" capture="environment" class="foto-input-oculto" />
+        <input type="file" id="foto-recuerdo" accept="image/*" class="foto-input-oculto" />
       </label>
       <div id="foto-preview-wrap" class="foto-preview-wrap hidden">
         <img id="foto-preview-img" class="foto-preview-img" alt="" />
@@ -1151,7 +1151,7 @@ function abrirModalEditarPrueba(p) {
         <label for="pa-foto" class="btn btn-ghost btn-block foto-picker-btn">
           <i class="fa-solid fa-camera"></i> ${p.foto_url ? 'Cambiar foto' : 'Sacar foto / elegir archivo'}
         </label>
-        <input type="file" id="pa-foto" accept="image/*" capture="environment" class="foto-input-oculto" />
+        <input type="file" id="pa-foto" accept="image/*" class="foto-input-oculto" />
       </label>
       <div id="pa-foto-preview-wrap" class="foto-preview-wrap ${p.foto_url ? '' : 'hidden'}">
         <img id="pa-foto-preview-img" class="foto-preview-img" alt="" src="${p.foto_url ? escapeHtml(p.foto_url) : ''}" />
