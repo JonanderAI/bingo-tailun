@@ -249,6 +249,11 @@ function nombreConAvatar(playerId) {
   return p ? `${p.avatar} ${p.name}` : '?';
 }
 
+function nombreDe(playerId) {
+  const p = state.players.find(pl => pl.id === playerId);
+  return p ? p.name : '?';
+}
+
 function renderHeader() {
   const chip = $('#user-chip');
   const tabs = $('#tabs');
@@ -603,7 +608,8 @@ async function abrirCelda(prueba, ev) {
   // a la vez quién ha sido el involucrado (admin o quien mandó la prueba).
   if (!autorizado) {
     abrirModal(`
-      <h3><i class="fa-solid fa-mask"></i> Prueba de ${escapeHtml(nombreConAvatar(prueba.submitted_by))}</h3>
+      <div class="modal-emoji-header">${escapeHtml(avatarDe(prueba.submitted_by))}</div>
+      <h3>Prueba de ${escapeHtml(nombreDe(prueba.submitted_by))}</h3>
       <p class="modal-texto">Aún sin descubrir 🤫</p>
     `);
     return;
@@ -620,7 +626,8 @@ async function abrirCelda(prueba, ev) {
   }
   if (!texto) {
     abrirModal(`
-      <h3><i class="fa-solid fa-mask"></i> Prueba de ${escapeHtml(nombreConAvatar(prueba.submitted_by))}</h3>
+      <div class="modal-emoji-header">${escapeHtml(avatarDe(prueba.submitted_by))}</div>
+      <h3>Prueba de ${escapeHtml(nombreDe(prueba.submitted_by))}</h3>
       <p class="modal-texto">Aún sin descubrir 🤫</p>
     `);
     return;
