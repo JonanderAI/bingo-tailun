@@ -497,7 +497,15 @@ input[type="datetime-local"] { width: 100%; }
 .fase-badge.playing { color: var(--success-text); background: rgba(23, 195, 178, 0.12); border-color: var(--accent-2); }
 .fase-badge.finished { color: var(--primary-dark); background: rgba(255, 79, 168, 0.12); border-color: var(--primary); }
 
-.board-card { display: flex; flex-direction: column; gap: 16px; }
+.board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* Menos padding lateral que el resto de tarjetas: el tablero debe
+     aprovechar todo el ancho disponible, casillas lo más grandes posible. */
+  padding-left: 8px;
+  padding-right: 8px;
+}
 
 .countdown-box {
   padding: 18px;
@@ -535,7 +543,7 @@ input[type="datetime-local"] { width: 100%; }
 .bingo-grid {
   display: grid;
   /* grid-template-columns se fija por JS según el lado real del tablero */
-  gap: 8px;
+  gap: 6px;
 }
 
 .bingo-cell {
