@@ -23,11 +23,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <link rel="stylesheet" href="css/style.css?v=31" />
+  <link rel="stylesheet" href="css/style.css?v=32" />
 </head>
 <body>
   <div id="emoji-layer" aria-hidden="true"></div>
   <div id="toast-layer" aria-hidden="true"></div>
+
+  <div id="loading-overlay" class="loading-overlay hidden" aria-hidden="true">
+    <i class="fa-solid fa-dice"></i>
+  </div>
 
   <div id="demo-banner" class="demo-banner hidden">
     <i class="fa-solid fa-flask"></i> Modo demo &middot; datos de prueba, sin base de datos conectada
@@ -125,6 +129,7 @@
         <div id="countdown-box" class="countdown-box hidden">
           <span class="countdown-label"><i class="fa-solid fa-hourglass-half"></i> El bingo empieza en</span>
           <span id="countdown-timer" class="countdown-timer">--:--:--</span>
+          <span id="countdown-fecha" class="countdown-fecha"></span>
         </div>
         <p id="board-empty-msg" class="notice hidden">
           <i class="fa-solid fa-hourglass-half"></i> El bingo aún no ha empezado. ¡Manda tu prueba y espera al admin!
@@ -218,6 +223,6 @@
   <script src="js/mock.js?v=8"></script>
   <script src="js/supabaseClient.js?v=1"></script>
   <script src="js/confetti.js?v=1"></script>
-  <script src="js/app.js?v=26"></script>
+  <script src="js/app.js?v=27"></script>
 </body>
 </html>

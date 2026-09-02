@@ -104,6 +104,10 @@ function cambiarVista(id) {
   $('#app-header').classList.toggle('hidden', id === 'view-login');
 }
 
+function mostrarCargando(mostrar) {
+  $('#loading-overlay')?.classList.toggle('hidden', !mostrar);
+}
+
 // ---------- login / registro ----------
 
 async function login(pin) {
@@ -284,16 +288,6 @@ function renderHeader() {
 
 // ---------- render: tu aportación ----------
 
-function estadoAportacion(p) {
-  if (p.completada) {
-    const cumplidor = state.players.find(pl => pl.id === p.completada_por);
-    return `<i class="fa-solid fa-champagne-glasses"></i> Cumplida por <strong>${cumplidor ? cumplidor.name : '?'}</strong>`;
-  }
-  if (state.fase === 'submission') return `<i class="fa-solid fa-hourglass-half"></i> Guardada, esperando a que empiece el bingo`;
-  if (p.revealed) return `<i class="fa-solid fa-fire"></i> ¡Activa en el tablero!`;
-  return `<i class="fa-solid fa-lock"></i> Sigue oculta`;
-}
-
 function renderMiAportacion() {
   const cont = $('#card-mi-aportacion');
   $('#card-reglas-juego').classList.toggle('hidden', state.fase === 'submission');
@@ -310,11 +304,10 @@ function renderMiAportacion() {
 
   let listaHtml = '';
   if (mias.length > 0) {
-    listaHtml = `<div class="assign-list">${mias.map(p => `
+    listaHtml = `<div class="assign-list mias-list">${mias.map(p => `
       <div class="assign-item">
         <span class="assign-texto">
           <span class="li-titulo">${escapeHtml(p.texto)}</span>
-          <span class="li-subtitulo">${estadoAportacion(p)}</span>
         </span>
         <span class="row-actions">
           <button class="btn btn-ghost btn-small" data-editar-mi-prueba="${p.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
@@ -451,6 +444,10 @@ function actualizarCuentaAtras() {
   box.classList.remove('hidden');
   const restante = new Date(state.inicioAt).getTime() - Date.now();
   $('#countdown-timer').textContent = formatearCuentaAtras(restante);
+  const fechaTexto = new Date(state.inicioAt).toLocaleString('es-ES', {
+    weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+  });
+  $('#countdown-fecha').textContent = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
 }
 
 function renderTablero() {
@@ -1230,6 +1227,7 @@ async function arrancarApp(player) {
   // Navegamos ya: si algo de la carga de datos falla no queremos dejar
   // a quien se acaba de loguear/registrar colgado en la pantalla de login.
   cambiarVista('view-tablero');
+  mostrarCargando(true);
 
   const resultados = await Promise.allSettled([
     cargarGameState(),
@@ -1249,6 +1247,7 @@ async function arrancarApp(player) {
   if (player.role === 'admin') {
     await Promise.all([cargarUsuariosAdmin(), cargarPruebasAdmin()]);
   }
+  mostrarCargando(false);
 
   initRealtime();
   iniciarComprobacionInicio();

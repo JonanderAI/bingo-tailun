@@ -287,8 +287,8 @@ body.has-tabs #app-root {
   font-size: 1.1rem;
 }
 .section-header .section-titles { min-width: 0; }
-.section-header h2, .section-header h3 { margin: 0; }
-.section-header .subtitle { margin: 1px 0 0; }
+.section-header h2, .section-header h3 { margin: 0; line-height: 1.15; }
+.section-header .subtitle { margin: 0; line-height: 1.2; }
 
 /* ---------- Login ---------- */
 
@@ -566,6 +566,12 @@ select option {
   letter-spacing: 0.03em;
   animation: countdown-pulse 1.6s ease-in-out infinite;
 }
+.countdown-fecha {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-dim);
+}
 
 @keyframes countdown-pulse {
   0%, 100% { transform: scale(1); }
@@ -635,7 +641,7 @@ select option {
   align-items: center;
   justify-content: center;
 }
-.cell-lock-icon { font-size: 2rem; color: var(--violet); opacity: 0.55; }
+.cell-lock-icon { font-size: 2rem; color: var(--violet); opacity: 0.3; }
 .cell-emoji-inside {
   position: absolute;
   font-size: 1.05rem;
@@ -765,6 +771,7 @@ select option {
 /* ---------- Admin: asignaciones ---------- */
 
 .assign-list { display: flex; flex-direction: column; gap: 10px; }
+.assign-list.mias-list { gap: 14px; margin-bottom: 14px; }
 .assign-item {
   display: flex;
   align-items: center;
@@ -850,6 +857,25 @@ select option {
 }
 .modal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 .modal-meta { color: var(--text-dim); font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+
+/* ---------- Cargando ---------- */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  font-size: 2.6rem;
+  color: var(--accent);
+}
+.loading-overlay i { animation: loading-spin 0.9s linear infinite; }
+@keyframes loading-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 /* ---------- Emojis y toasts ---------- */
 
