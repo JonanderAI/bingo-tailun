@@ -877,7 +877,13 @@ select option {
   overflow: hidden;
 }
 .galeria-foto-wrap > a { display: block; cursor: zoom-in; line-height: 0; }
-.galeria-foto-grande { display: block; width: 100%; height: auto; }
+.galeria-foto-grande {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 85vh;
+  margin: 0 auto;
+}
 .galeria-foto-descargar {
   position: absolute;
   top: 10px;
