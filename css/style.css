@@ -503,10 +503,10 @@ select option {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Menos padding lateral que el resto de tarjetas: el tablero debe
-     aprovechar todo el ancho disponible, casillas lo más grandes posible. */
-  padding-left: 8px;
-  padding-right: 8px;
+  /* Menos padding que el resto de tarjetas, igual por los 4 lados: el
+     tablero debe aprovechar todo el ancho disponible, casillas lo más
+     grandes posible. */
+  padding: 8px;
 }
 
 .countdown-box {
