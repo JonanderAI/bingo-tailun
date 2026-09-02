@@ -32,7 +32,7 @@ create table if not exists pruebas (
   texto text not null,
   submitted_by uuid references players(id) on delete set null,
   responsable_id uuid references players(id) on delete set null, -- ya no se usa (sin encargados fijos), se deja por compatibilidad
-  gestionado_por uuid references players(id) on delete set null, -- qué admin la marcó cumplida: bebe con el cumplidor
+  gestionado_por uuid references players(id) on delete set null, -- quién la destapó/marcó cumplida (no bebe, solo el involucrado)
   position int unique,
   libre boolean not null default false,
   revealed boolean not null default false,
@@ -494,7 +494,6 @@ as $$
 declare
   v_role text;
   v_pos int;
-  v_gestor_name text;
   v_cumplidor_name text;
   v_size int;
   v_lado int;
@@ -518,12 +517,11 @@ begin
     set completada = true, completada_por = p_cumplidor_id, gestionado_por = p_player_id, completada_at = now(), revealed = true
     where id = p_prueba_id;
 
-  select name into v_gestor_name from players where id = p_player_id;
   select name into v_cumplidor_name from players where id = p_cumplidor_id;
 
   insert into eventos(tipo, mensaje) values (
     'chupito',
-    coalesce(v_cumplidor_name, 'Alguien') || ' y ' || coalesce(v_gestor_name, 'el admin') || ' beben un chupito 🥃'
+    coalesce(v_cumplidor_name, 'Alguien') || ' bebe un chupito 🥃'
   );
 
   select board_size into v_size from game_state where id = 1;

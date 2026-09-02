@@ -567,8 +567,7 @@ async function abrirCelda(prueba, ev) {
     abrirModal(`
       <h3><i class="fa-solid fa-champagne-glasses"></i> Prueba cumplida</h3>
       <p class="modal-texto">${escapeHtml(prueba.texto)}</p>
-      <p class="modal-meta"><i class="fa-solid fa-user-check"></i> Cumplida por <strong>${escapeHtml(nombreConAvatar(prueba.completada_por))}</strong></p>
-      <p class="modal-meta"><i class="fa-solid fa-champagne-glasses"></i> Chupito con: <strong>${escapeHtml(nombreConAvatar(prueba.gestionado_por))}</strong></p>
+      <p class="modal-meta"><i class="fa-solid fa-champagne-glasses"></i> Chupito para <strong>${escapeHtml(nombreConAvatar(prueba.completada_por))}</strong></p>
     `);
     return;
   }

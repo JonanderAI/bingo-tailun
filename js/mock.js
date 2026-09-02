@@ -244,7 +244,7 @@ function crearClienteMock() {
       const cumplidor = players.find(p => p.id === p_cumplidor_id);
       const evento = {
         id: uid('evento'), tipo: 'chupito',
-        mensaje: `${cumplidor ? cumplidor.name : 'Alguien'} y ${player.name} beben un chupito 🥃`,
+        mensaje: `${cumplidor ? cumplidor.name : 'Alguien'} bebe un chupito 🥃`,
         created_at: new Date().toISOString(),
       };
       eventos.push(evento);
