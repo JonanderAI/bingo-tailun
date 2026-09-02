@@ -672,7 +672,8 @@ function renderGaleria() {
   }
   cont.innerHTML = fotos.map(p => `
     <div class="galeria-item" data-foto-id="${p.id}">
-      <img src="${escapeHtml(p.foto_url)}" alt="" loading="lazy" />
+      <div class="galeria-item-img"><img src="${escapeHtml(p.foto_url)}" alt="" loading="lazy" /></div>
+      <div class="galeria-item-titulo">${escapeHtml(p.texto || '')}</div>
     </div>
   `).join('');
   cont.querySelectorAll('[data-foto-id]').forEach(el => {
