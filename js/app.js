@@ -510,7 +510,7 @@ function renderTablero() {
       cell.innerHTML = `<i class="fa-solid fa-gift cell-icon-bg"></i><span class="cell-text">${escapeHtml(prueba.texto || 'Comodín')}</span>`;
     } else if (prueba.completada) {
       cell.classList.add('completed-cell');
-      cell.innerHTML = `<i class="fa-solid fa-champagne-glasses cell-icon-bg"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>`;
+      cell.innerHTML = `<i class="fa-solid fa-burst cell-icon-bg cell-icon-vacia"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span><span class="cumplidor-tag">${escapeHtml(nombreConAvatar(prueba.completada_por))}</span>`;
     } else if (prueba.revealed) {
       cell.classList.add('revealed-cell');
       cell.innerHTML = `<i class="fa-solid fa-fire cell-icon-bg"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span>`;

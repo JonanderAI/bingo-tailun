@@ -617,12 +617,6 @@ select option {
 
 .bingo-cell.completed-cell { background: linear-gradient(160deg, rgba(255, 79, 168, 0.22), rgba(255, 79, 168, 0.06)); border-color: var(--primary); }
 .bingo-cell.completed-cell .cell-icon-bg { color: var(--primary); }
-.bingo-cell.completed-cell::after {
-  content: '';
-  position: absolute; inset: 0;
-  z-index: 0;
-  background: repeating-linear-gradient(-45deg, rgba(255,255,255,0.5) 0 8px, transparent 8px 16px);
-}
 
 .bingo-cell.libre-cell { background: linear-gradient(160deg, rgba(124, 92, 255, 0.22), rgba(124, 92, 255, 0.06)); border-color: var(--accent); }
 .bingo-cell.libre-cell .cell-icon-bg { color: var(--accent); }
