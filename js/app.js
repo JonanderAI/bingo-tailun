@@ -1073,15 +1073,16 @@ async function arrancarApp(player) {
   iniciarComprobacionInicio();
 }
 
-// Cuenta atrás visual cada segundo + comprobación real cada 10s de si ya
-// toca empezar (cualquier cliente conectado puede disparar el inicio).
+// Cuenta atrás visual + comprobación real de si ya toca empezar, ambas
+// cada segundo (cualquier cliente conectado puede disparar el inicio),
+// así el bingo arranca casi al instante en cuanto el contador llega a 0.
 function iniciarComprobacionInicio() {
-  setInterval(actualizarCuentaAtras, 1000);
   setInterval(async () => {
+    actualizarCuentaAtras();
     if (state.fase !== 'submission' || !state.inicioAt) return;
     if (new Date(state.inicioAt).getTime() > Date.now()) return;
     await supabaseClient.rpc('comprobar_inicio_programado');
-  }, 10_000);
+  }, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
