@@ -218,6 +218,42 @@ function crearClienteMock() {
       return ok(pruebas.map(p => ({ ...p })));
     },
 
+    admin_editar_prueba: ({ p_player_id, p_prueba_id, p_texto }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      const prueba = pruebas.find(p => p.id === p_prueba_id && !p.libre);
+      if (!prueba) return fail('No encontrada');
+      prueba.texto = (p_texto || '').trim();
+      emit('pruebas', {});
+      return ok(true);
+    },
+
+    admin_borrar_prueba: ({ p_player_id, p_prueba_id }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      const prueba = pruebas.find(p => p.id === p_prueba_id && !p.libre);
+      if (!prueba) return fail('No encontrada');
+      if (gameState.fase === 'submission') {
+        const idx = pruebas.indexOf(prueba);
+        pruebas.splice(idx, 1);
+      } else {
+        // El bingo ya ha empezado: no se borra (dejaría la casilla
+        // vacía), se convierte en comodín en su misma posición.
+        prueba.texto = 'Comodín';
+        prueba.submitted_by = null;
+        prueba.responsable_id = null;
+        prueba.gestionado_por = null;
+        prueba.libre = true;
+        prueba.revealed = true;
+        prueba.completada = true;
+        prueba.completada_por = null;
+        prueba.revealed_at = new Date().toISOString();
+        prueba.completada_at = new Date().toISOString();
+      }
+      emit('pruebas', {});
+      return ok(true);
+    },
+
     revelar_prueba: ({ p_player_id, p_prueba_id }) => {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);

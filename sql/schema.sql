@@ -775,7 +775,9 @@ $$;
 
 grant execute on function admin_editar_prueba(uuid, uuid, text) to anon;
 
--- Borrar una prueba enviada
+-- Borrar una prueba enviada. Si el bingo ya ha empezado, no se borra la
+-- fila (dejaría la casilla vacía y descuadraría el tablero): se
+-- convierte en comodín en su misma posición.
 create or replace function admin_borrar_prueba(p_player_id uuid, p_prueba_id uuid)
 returns boolean
 language plpgsql
@@ -783,12 +785,22 @@ security definer
 as $$
 declare
   v_role text;
+  v_fase text;
 begin
   select p.role into v_role from players p where p.id = p_player_id;
   if v_role <> 'admin' then
     raise exception 'No autorizado';
   end if;
-  delete from pruebas where id = p_prueba_id and not libre;
+  select fase into v_fase from game_state where id = 1;
+  if v_fase = 'submission' then
+    delete from pruebas where id = p_prueba_id and not libre;
+  else
+    update pruebas
+      set texto = 'Comodín', submitted_by = null, responsable_id = null, gestionado_por = null,
+          libre = true, revealed = true, completada = true, completada_por = null,
+          revealed_at = now(), completada_at = now()
+      where id = p_prueba_id and not libre;
+  end if;
   return true;
 end;
 $$;
