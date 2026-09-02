@@ -62,29 +62,34 @@ function crearClienteMock() {
   function repartirTablero() {
     const sinAsignar = pruebas.filter(p => p.position === null && !p.libre);
     const count = sinAsignar.length;
-    const side = Math.max(3, Math.ceil(Math.sqrt(count + 1)));
+    // Cuadrado exacto: si las pruebas encajan justas (ej. 16 -> 4x4) no
+    // hay comodín; si sobra un hueco (ej. 15 -> 4x4) va un comodín centrado.
+    const side = Math.max(3, Math.ceil(Math.sqrt(count)));
     const size = side * side;
     const centro = Math.floor(size / 2);
+    const hayComodin = size > count;
 
-    pruebas.push({
-      id: uid('comodin'),
-      texto: 'Comodín',
-      submitted_by: null,
-      responsable_id: null,
-      position: centro,
-      libre: true,
-      revealed: true,
-      completada: true,
-      completada_por: null,
-      created_at: new Date().toISOString(),
-      revealed_at: new Date().toISOString(),
-      completada_at: new Date().toISOString(),
-    });
+    if (hayComodin) {
+      pruebas.push({
+        id: uid('comodin'),
+        texto: 'Comodín',
+        submitted_by: null,
+        responsable_id: null,
+        position: centro,
+        libre: true,
+        revealed: true,
+        completada: true,
+        completada_por: null,
+        created_at: new Date().toISOString(),
+        revealed_at: new Date().toISOString(),
+        completada_at: new Date().toISOString(),
+      });
+    }
 
     const shuffled = [...sinAsignar].sort(() => Math.random() - 0.5);
     let pos = 0;
     shuffled.forEach((p) => {
-      if (pos === centro) pos++;
+      if (hayComodin && pos === centro) pos++;
       p.position = pos;
       pos++;
     });
@@ -192,7 +197,7 @@ function crearClienteMock() {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
       if (!player || !prueba) return ok(null);
-      if (player.role === 'admin') return ok(prueba.texto);
+      if (player.role === 'admin' || prueba.submitted_by === p_player_id) return ok(prueba.texto);
       return ok(null);
     },
 
@@ -206,7 +211,7 @@ function crearClienteMock() {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
       if (!player || !prueba) return fail('No autorizado');
-      if (player.role !== 'admin') return fail('No autorizado');
+      if (player.role !== 'admin' && prueba.submitted_by !== p_player_id) return fail('No autorizado');
       prueba.revealed = true;
       prueba.revealed_at = new Date().toISOString();
       emit('pruebas', {});
@@ -217,7 +222,7 @@ function crearClienteMock() {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
       if (!player || !prueba) return fail('No autorizado');
-      if (player.role !== 'admin') return fail('No autorizado');
+      if (player.role !== 'admin' && prueba.submitted_by !== p_player_id) return fail('No autorizado');
 
       prueba.completada = true;
       prueba.completada_por = p_cumplidor_id;

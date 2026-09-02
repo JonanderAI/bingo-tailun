@@ -266,7 +266,7 @@ function renderHeader() {
   $('#user-name-label').textContent = state.player.name;
   const badge = $('#user-role-badge');
   if (state.player.role === 'admin') {
-    badge.textContent = 'admin';
+    badge.innerHTML = '<i class="fa-solid fa-crown"></i>';
     badge.classList.remove('hidden');
   } else {
     badge.classList.add('hidden');
@@ -293,8 +293,14 @@ function renderMiAportacion() {
 
   let listaHtml = '';
   if (mias.length > 0) {
-    listaHtml = `<ul class="simple-list">${mias.map(p => `
-      <li><i class="fa-solid fa-scroll"></i> ${escapeHtml(p.texto)} &middot; ${estadoAportacion(p)}</li>
+    listaHtml = `<ul class="simple-list simple-list-2l">${mias.map(p => `
+      <li>
+        <i class="fa-solid fa-scroll"></i>
+        <span class="li-texto">
+          <span class="li-titulo">${escapeHtml(p.texto)}</span>
+          <span class="li-subtitulo">${estadoAportacion(p)}</span>
+        </span>
+      </li>
     `).join('')}</ul>`;
   } else if (state.fase !== 'submission') {
     listaHtml = `<p class="subtitle small">No enviaste ninguna prueba esta vez. ¡A disfrutar del bingo de los demás! 🍻</p>`;
@@ -315,7 +321,7 @@ function renderMiAportacion() {
   }
 
   cont.innerHTML = `
-    <h3><i class="fa-solid fa-lightbulb"></i> Tu aportación</h3>
+    <h3><i class="fa-solid fa-lightbulb"></i> Tus pruebas</h3>
     <p class="subtitle small">Hasta ${MAX_PRUEBAS_POR_JUGADOR} pruebas por jugador. ¡Cuanto más random, mejor!</p>
     ${listaHtml}
     ${formHtml}
@@ -415,10 +421,10 @@ function renderTablero() {
       cell.innerHTML = `<i class="fa-solid fa-fire cell-icon"></i><span class="cell-text">${escapeHtml(prueba.texto || '')}</span>`;
     } else {
       cell.classList.add('hidden-cell');
-      if (state.player.role === 'admin') {
+      if (state.player.role === 'admin' || prueba.submitted_by === state.player.id) {
         cell.classList.add('puede-ver');
       }
-      cell.innerHTML = `<i class="fa-solid fa-lock cell-icon"></i>`;
+      cell.innerHTML = `<span class="cell-icon cell-emoji">${escapeHtml(avatarDe(prueba.submitted_by))}</span>`;
     }
 
     if (prueba) {
@@ -437,12 +443,20 @@ function escapeHtml(str) {
 // ---------- modal de celda ----------
 
 function abrirModal(html) {
+  const overlay = $('#modal-overlay');
+  overlay.classList.remove('closing');
   $('#modal-content').innerHTML = html;
-  $('#modal-overlay').classList.remove('hidden');
+  overlay.classList.remove('hidden');
 }
 function cerrarModal() {
-  $('#modal-overlay').classList.add('hidden');
-  $('#modal-content').innerHTML = '';
+  const overlay = $('#modal-overlay');
+  if (overlay.classList.contains('hidden')) return;
+  overlay.classList.add('closing');
+  setTimeout(() => {
+    overlay.classList.add('hidden');
+    overlay.classList.remove('closing');
+    $('#modal-content').innerHTML = '';
+  }, 150);
 }
 
 async function abrirCelda(prueba, ev) {
@@ -464,14 +478,18 @@ async function abrirCelda(prueba, ev) {
     return;
   }
 
+  // Quién puede destapar/completar esta prueba: el admin o quien la mandó.
+  const autorizado = state.player.role === 'admin' || prueba.submitted_by === state.player.id;
+
   if (prueba.revealed) {
-    const autorizado = state.player.role === 'admin';
+    // Caso raro (no debería pasar con el flujo normal, revelar y completar
+    // van juntos), pero se deja por si una prueba se queda a medias.
     let acciones = '';
     if (autorizado) {
       const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
       acciones = `
         <div class="modal-actions">
-          <label class="field"><span><i class="fa-solid fa-user-check"></i> ¿Quién ha cumplido la prueba?</span>
+          <label class="field"><span><i class="fa-solid fa-user-check"></i> ¿Quién ha sido el involucrado?</span>
             <select id="select-cumplidor">${opciones}</select>
           </label>
           <button class="btn btn-primary btn-block" id="btn-marcar-cumplida">
@@ -494,7 +512,16 @@ async function abrirCelda(prueba, ev) {
     return;
   }
 
-  // oculta: pedir al servidor si podemos verla
+  // oculta: solo se puede destapar cuando ya ha pasado, y hay que elegir
+  // a la vez quién ha sido el involucrado (admin o quien mandó la prueba).
+  if (!autorizado) {
+    abrirModal(`
+      <h3><i class="fa-solid fa-mask"></i> Prueba de ${escapeHtml(nombreConAvatar(prueba.submitted_by))}</h3>
+      <p class="modal-texto">Aún sin descubrir 🤫</p>
+    `);
+    return;
+  }
+
   abrirModal(`<p class="modal-meta"><i class="fa-solid fa-spinner fa-spin"></i> Comprobando...</p>`);
   const { data: texto, error } = await supabaseClient.rpc('ver_prueba_oculta', {
     p_prueba_id: prueba.id,
@@ -506,29 +533,29 @@ async function abrirCelda(prueba, ev) {
   }
   if (!texto) {
     abrirModal(`
-      <h3><i class="fa-solid fa-lock"></i> Prueba oculta</h3>
-      <p class="modal-texto">Solo el admin puede verla.</p>
+      <h3><i class="fa-solid fa-mask"></i> Prueba de ${escapeHtml(nombreConAvatar(prueba.submitted_by))}</h3>
+      <p class="modal-texto">Aún sin descubrir 🤫</p>
     `);
     return;
   }
+
+  const opciones = state.players.map(p => `<option value="${p.id}">${escapeHtml(p.avatar)} ${escapeHtml(p.name)}</option>`).join('');
   abrirModal(`
     <h3><i class="fa-solid fa-eye"></i> Vista privada</h3>
     <p class="modal-texto">${escapeHtml(texto)}</p>
+    <p class="modal-meta"><i class="fa-solid fa-circle-info"></i> Solo se destapa cuando ya ha pasado.</p>
     <div class="modal-actions">
-      <button class="btn btn-accent btn-block" id="btn-habilitar">
-        <i class="fa-solid fa-bullhorn"></i> Habilitar para todos
+      <label class="field"><span><i class="fa-solid fa-user-check"></i> ¿Quién ha sido el involucrado?</span>
+        <select id="select-cumplidor">${opciones}</select>
+      </label>
+      <button class="btn btn-accent btn-block" id="btn-marcar-cumplida">
+        <i class="fa-solid fa-champagne-glasses"></i> Ha pasado: mostrar y marcar cumplida
       </button>
     </div>
   `);
-  $('#btn-habilitar').addEventListener('click', async (e) => {
-    const rect = ev?.currentTarget?.getBoundingClientRect?.();
-    cerrarModal();
-    const { error: err2 } = await supabaseClient.rpc('revelar_prueba', {
-      p_prueba_id: prueba.id,
-      p_player_id: state.player.id,
-    });
-    if (err2) { mostrarToast('No se ha podido habilitar la prueba'); return; }
-    lanzarEmojis(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined);
+  $('#btn-marcar-cumplida').addEventListener('click', async () => {
+    const cumplidorId = $('#select-cumplidor').value;
+    await marcarCumplida(prueba.id, cumplidorId);
   });
 }
 
@@ -609,6 +636,96 @@ function initAdminActions() {
   $('#btn-crear-usuario').addEventListener('click', abrirModalCrearUsuario);
 }
 
+// ---------- admin: pruebas reportadas ----------
+
+async function cargarPruebasAdmin() {
+  if (state.player?.role !== 'admin') return;
+  const { data, error } = await supabaseClient.rpc('listar_pruebas_admin', { p_player_id: state.player.id });
+  if (error) {
+    $('#admin-pruebas').innerHTML = `<p class="notice"><i class="fa-solid fa-triangle-exclamation"></i> ${error.message}</p>`;
+    return;
+  }
+  renderPruebasAdmin((data || []).filter(p => !p.libre));
+}
+
+function estadoPruebaAdmin(p) {
+  if (p.completada) return `<i class="fa-solid fa-champagne-glasses"></i> Cumplida`;
+  if (p.revealed) return `<i class="fa-solid fa-fire"></i> Activa`;
+  return `<i class="fa-solid fa-lock"></i> Oculta`;
+}
+
+function renderPruebasAdmin(lista) {
+  const cont = $('#admin-pruebas');
+  if (lista.length === 0) {
+    cont.innerHTML = '<p class="subtitle small">Todavía no hay pruebas enviadas.</p>';
+    return;
+  }
+  cont.innerHTML = lista.map(p => `
+    <div class="assign-item">
+      <span class="assign-texto">
+        <span class="li-titulo">${escapeHtml(p.texto)}</span>
+        <span class="li-subtitulo">${estadoPruebaAdmin(p)} &middot; de ${escapeHtml(nombreConAvatar(p.submitted_by))}</span>
+      </span>
+      <button class="btn btn-ghost btn-small" data-editar-prueba="${p.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+      <button class="btn btn-ghost btn-small" data-borrar-prueba="${p.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+
+  cont.querySelectorAll('[data-editar-prueba]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = lista.find(x => x.id === btn.dataset.editarPrueba);
+      if (p) abrirModalEditarPrueba(p);
+    });
+  });
+  cont.querySelectorAll('[data-borrar-prueba]').forEach(btn => {
+    btn.addEventListener('click', () => borrarPruebaAdmin(btn.dataset.borrarPrueba));
+  });
+}
+
+function abrirModalEditarPrueba(p) {
+  abrirModal(`
+    <h3><i class="fa-solid fa-pen"></i> Editar prueba</h3>
+    <form id="form-prueba-admin">
+      <label class="field">
+        <textarea id="pa-texto" rows="3" maxlength="200" required>${escapeHtml(p.texto)}</textarea>
+      </label>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      <p id="pa-error" class="error-msg hidden"></p>
+    </form>
+  `);
+  $('#form-prueba-admin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const texto = $('#pa-texto').value.trim();
+    if (!texto) return;
+    const { error } = await supabaseClient.rpc('admin_editar_prueba', {
+      p_player_id: state.player.id, p_prueba_id: p.id, p_texto: texto,
+    });
+    if (error) {
+      const errEl = $('#pa-error');
+      errEl.textContent = error.message;
+      errEl.classList.remove('hidden');
+      return;
+    }
+    cerrarModal();
+    mostrarToast('Prueba actualizada');
+    await refrescarTrasCambioPruebas();
+  });
+}
+
+async function borrarPruebaAdmin(id) {
+  if (!confirm('¿Borrar esta prueba? No se puede deshacer.')) return;
+  const { error } = await supabaseClient.rpc('admin_borrar_prueba', { p_player_id: state.player.id, p_prueba_id: id });
+  if (error) { mostrarToast(error.message); return; }
+  mostrarToast('Prueba borrada');
+  await refrescarTrasCambioPruebas();
+}
+
+async function refrescarTrasCambioPruebas() {
+  await Promise.all([cargarPruebas(), cargarMisPruebas(), cargarPruebasAdmin()]);
+  renderTablero();
+  renderMiAportacion();
+}
+
 // ---------- admin: usuarios ----------
 
 async function cargarUsuariosAdmin() {
@@ -629,7 +746,7 @@ function renderUsuarios(lista) {
   }
   cont.innerHTML = lista.map(u => `
     <div class="assign-item">
-      <span class="assign-texto">${escapeHtml(u.avatar)} ${escapeHtml(u.name)} ${u.role === 'admin' ? '<span class="role-badge">admin</span>' : ''}</span>
+      <span class="assign-texto">${escapeHtml(u.avatar)} ${escapeHtml(u.name)} ${u.role === 'admin' ? '<span class="role-tag">admin</span>' : ''}</span>
       <span class="subtitle small" style="margin:0;">PIN ${escapeHtml(u.pin)}</span>
       <button class="btn btn-ghost btn-small" data-editar="${u.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
       <button class="btn btn-ghost btn-small" data-borrar="${u.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
@@ -769,7 +886,14 @@ function initRealtime() {
       renderMiAportacion();
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_state' }, async () => {
+      const faseAnterior = state.fase;
       await cargarGameState();
+      if (faseAnterior === 'submission' && state.fase === 'playing') {
+        mostrarToast('¡EMPIEZA EL BINGO! 🎉🔥', { big: true });
+        lanzarEmojis();
+        setTimeout(lanzarEmojis, 350);
+        setTimeout(lanzarEmojis, 700);
+      }
       renderTablero();
       renderMiAportacion();
       renderAdmin();
@@ -803,22 +927,29 @@ function initModal() {
 async function arrancarApp(player) {
   state.player = player;
   renderHeader();
+  // Navegamos ya: si algo de la carga de datos falla no queremos dejar
+  // a quien se acaba de loguear/registrar colgado en la pantalla de login.
+  cambiarVista('view-tablero');
 
-  await Promise.all([
+  const resultados = await Promise.allSettled([
     cargarGameState(),
     cargarPruebas(),
     cargarPlayers(),
     cargarMisPruebas(),
   ]);
+  const fallo = resultados.find(r => r.status === 'rejected');
+  if (fallo) {
+    console.error(fallo.reason);
+    mostrarToast(fallo.reason?.message || 'Error cargando el tablero, prueba a recargar la página');
+  }
 
   renderTablero();
   renderMiAportacion();
   renderAdmin();
   if (player.role === 'admin') {
-    await cargarUsuariosAdmin();
+    await Promise.all([cargarUsuariosAdmin(), cargarPruebasAdmin()]);
   }
 
-  cambiarVista('view-tablero');
   initRealtime();
   iniciarComprobacionInicio();
 }

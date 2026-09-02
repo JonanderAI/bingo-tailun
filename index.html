@@ -10,7 +10,7 @@
   <meta name="description" content="El bingo de pruebas del finde. ¡Que empiece la fiesta!" />
 
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ffea07" />
+  <meta name="theme-color" content="#10091f" />
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
@@ -23,7 +23,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <link rel="stylesheet" href="css/style.css?v=6" />
+  <link rel="stylesheet" href="css/style.css?v=7" />
 </head>
 <body>
   <div id="emoji-layer" aria-hidden="true"></div>
@@ -123,7 +123,6 @@
     <section id="view-tablero" class="view">
       <div class="card board-card">
         <div class="board-header">
-          <h2><i class="fa-solid fa-table-cells-large"></i> Tablero del bingo</h2>
           <div id="fase-badge" class="fase-badge"></div>
         </div>
         <div id="countdown-box" class="countdown-box hidden">
@@ -169,6 +168,12 @@
       </div>
 
       <div class="card">
+        <h3><i class="fa-solid fa-scroll"></i> Pruebas reportadas</h3>
+        <p class="subtitle small">Todas las pruebas enviadas. Puedes editar el texto o borrarlas.</p>
+        <div id="admin-pruebas" class="assign-list"></div>
+      </div>
+
+      <div class="card">
         <h3><i class="fa-solid fa-users"></i> Usuarios</h3>
         <p class="subtitle small">Ver, editar, borrar o crear cuentas manualmente.</p>
         <div id="admin-usuarios" class="assign-list"></div>
@@ -190,9 +195,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/config.js?v=1"></script>
-  <script src="js/mock.js?v=2"></script>
+  <script src="js/mock.js?v=3"></script>
   <script src="js/supabaseClient.js?v=1"></script>
   <script src="js/confetti.js?v=1"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>

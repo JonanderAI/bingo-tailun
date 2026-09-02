@@ -220,13 +220,14 @@ security definer
 as $$
 declare
   v_role text;
+  v_submitted_by uuid;
   v_texto text;
 begin
-  select role into v_role from players where id = p_player_id;
-  if v_role <> 'admin' then
+  select p.role into v_role from players p where p.id = p_player_id;
+  select p.submitted_by, p.texto into v_submitted_by, v_texto from pruebas p where p.id = p_prueba_id;
+  if v_role <> 'admin' and v_submitted_by is distinct from p_player_id then
     return null;
   end if;
-  select texto into v_texto from pruebas where id = p_prueba_id;
   return v_texto;
 end;
 $$;
@@ -290,16 +291,21 @@ begin
     return;
   end if;
 
-  v_side := greatest(3, ceil(sqrt(v_count + 1))::int);
+  -- Tablero siempre cuadrado (lado x lado) que encaje justo con las
+  -- pruebas: si encajan exactas (p.ej. 16 -> 4x4) no hay comodín; si
+  -- sobra un hueco (p.ej. 15 -> 4x4) se pone un comodín en el centro.
+  v_side := greatest(3, ceil(sqrt(v_count))::int);
   v_size := v_side * v_side;
   v_centro := v_size / 2;
 
-  insert into pruebas (texto, position, libre, revealed, completada)
-  values ('Comodín', v_centro, true, true, true);
+  if v_size > v_count then
+    insert into pruebas (texto, position, libre, revealed, completada)
+    values ('Comodín', v_centro, true, true, true);
+  end if;
 
   v_pos := 0;
   for i in 1 .. v_count loop
-    if v_pos = v_centro then
+    if v_size > v_count and v_pos = v_centro then
       v_pos := v_pos + 1;
     end if;
     update pruebas set position = v_pos where id = v_ids[i];
@@ -417,9 +423,11 @@ security definer
 as $$
 declare
   v_role text;
+  v_submitted_by uuid;
 begin
-  select role into v_role from players where id = p_player_id;
-  if v_role <> 'admin' then
+  select p.role into v_role from players p where p.id = p_player_id;
+  select p.submitted_by into v_submitted_by from pruebas p where p.id = p_prueba_id;
+  if v_role <> 'admin' and v_submitted_by is distinct from p_player_id then
     raise exception 'No autorizado';
   end if;
   update pruebas set revealed = true, revealed_at = now() where id = p_prueba_id;
@@ -451,12 +459,13 @@ declare
   v_completadas int;
   v_fila_completa boolean;
   v_col_completa boolean;
+  v_submitted_by uuid;
 begin
-  select role into v_role from players where id = p_player_id;
-  if v_role <> 'admin' then
+  select p.role into v_role from players p where p.id = p_player_id;
+  select p.position, p.submitted_by into v_pos, v_submitted_by from pruebas p where p.id = p_prueba_id;
+  if v_role <> 'admin' and v_submitted_by is distinct from p_player_id then
     raise exception 'No autorizado';
   end if;
-  select position into v_pos from pruebas where id = p_prueba_id;
 
   update pruebas
     set completada = true, completada_por = p_cumplidor_id, gestionado_por = p_player_id, completada_at = now(), revealed = true
@@ -635,6 +644,46 @@ end;
 $$;
 
 grant execute on function admin_borrar_jugador(uuid, uuid) to anon;
+
+-- Editar el texto de una prueba ya enviada
+create or replace function admin_editar_prueba(p_player_id uuid, p_prueba_id uuid, p_texto text)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+begin
+  select p.role into v_role from players p where p.id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+  update pruebas set texto = trim(p_texto) where id = p_prueba_id and not libre;
+  return true;
+end;
+$$;
+
+grant execute on function admin_editar_prueba(uuid, uuid, text) to anon;
+
+-- Borrar una prueba enviada
+create or replace function admin_borrar_prueba(p_player_id uuid, p_prueba_id uuid)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+begin
+  select p.role into v_role from players p where p.id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+  delete from pruebas where id = p_prueba_id and not libre;
+  return true;
+end;
+$$;
+
+grant execute on function admin_borrar_prueba(uuid, uuid) to anon;
 
 -- ---------- REALTIME ----------
 -- Añade las tablas a la publicación de Realtime, sin fallar si ya
