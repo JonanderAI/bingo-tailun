@@ -226,8 +226,9 @@ h2 i, h3 i { margin-right: 8px; }
   max-width: 640px;
   margin: 0 auto;
   /* Sin padding arriba: el hueco bajo la cabecera lo pone ya su propio
-     padding inferior (14px), igual que el padding superior de la barra. */
-  padding: 0 14px 24px;
+     padding inferior. Menos padding lateral para aprovechar más ancho
+     (el tablero y tus pruebas ya reducen su propio padding interno). */
+  padding: 0 10px 24px;
 }
 /* Solo el admin tiene barra de pestañas fija abajo: reservamos hueco
    para que no la tape, pero solo cuando de verdad está en pantalla
@@ -269,19 +270,25 @@ body.has-tabs #app-root {
    los dos (en vez de pegado al título en la misma línea). */
 .section-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   margin-bottom: 16px;
 }
 .section-header .section-icon {
-  font-size: 1.4rem;
-  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
-  line-height: 1.4;
+  border-radius: 12px;
+  background: rgba(124, 92, 255, 0.16);
+  color: var(--accent);
+  font-size: 1.1rem;
 }
 .section-header .section-titles { min-width: 0; }
 .section-header h2, .section-header h3 { margin: 0; }
-.section-header .subtitle { margin: 4px 0 0; }
+.section-header .subtitle { margin: 1px 0 0; }
 
 /* ---------- Login ---------- */
 
