@@ -346,6 +346,10 @@ input, textarea, select {
   font-weight: 700;
   outline: none;
   transition: border-color 0.15s;
+  /* Los campos con tamaño "intrínseco" (textarea por cols/rows, select,
+     datetime-local...) no siempre se estiran solos dentro del flex
+     column de .field, así que forzamos el 100% explícitamente. */
+  width: 100%;
 }
 input:focus, textarea:focus, select:focus { border-color: var(--primary); }
 textarea { resize: vertical; }
@@ -411,8 +415,6 @@ select option {
 
 .admin-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .admin-actions .btn { flex: 1; }
-
-input[type="datetime-local"] { width: 100%; }
 
 .error-msg { color: var(--danger); font-weight: 700; margin-top: 8px; font-size: 0.9rem; }
 .notice {
