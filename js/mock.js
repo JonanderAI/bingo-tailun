@@ -133,6 +133,8 @@ function crearClienteMock() {
       responsable_id: (p.revealed || p.libre) ? p.responsable_id : null,
       gestionado_por: p.gestionado_por || null,
       foto_url: (p.revealed || p.libre) ? (p.foto_url || null) : null,
+      autor_nombre: p.autor_nombre || null,
+      autor_avatar: p.autor_avatar || null,
     }));
   }
 
@@ -303,6 +305,48 @@ function crearClienteMock() {
       prueba.position = p_nueva_pos;
       emit('pruebas', {});
       return ok(true);
+    },
+
+    admin_crear_prueba_manual: ({ p_player_id, p_texto, p_autor_nombre, p_autor_avatar }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      const nombre = (p_autor_nombre || '').trim();
+      if (!nombre) return fail('Ponle un nombre al autor');
+      const avatar = (p_autor_avatar || '').trim() || '🎉';
+      const texto = capitalizaTexto(p_texto);
+
+      const comodin = pruebas.find(p => p.libre);
+      if (comodin) {
+        comodin.texto = texto;
+        comodin.submitted_by = null;
+        comodin.autor_nombre = nombre;
+        comodin.autor_avatar = avatar;
+        comodin.libre = false;
+        comodin.revealed = false;
+        comodin.completada = false;
+        comodin.completada_por = null;
+        comodin.gestionado_por = null;
+        comodin.revealed_at = null;
+        comodin.completada_at = null;
+        comodin.foto_url = null;
+        emit('pruebas', {});
+        return ok(comodin.id);
+      }
+
+      const ocupadas = new Set(pruebas.filter(p => p.position !== null).map(p => p.position));
+      const libres = [];
+      for (let i = 0; i < 36; i++) if (!ocupadas.has(i)) libres.push(i);
+      if (libres.length === 0) return fail('No quedan casillas libres en el tablero');
+      const pos = libres[Math.floor(Math.random() * libres.length)];
+      const nueva = {
+        id: uid('prueba'), texto, submitted_by: null, responsable_id: null,
+        autor_nombre: nombre, autor_avatar: avatar,
+        position: pos, libre: false, revealed: false, completada: false, completada_por: null,
+        created_at: new Date().toISOString(), revealed_at: null, completada_at: null,
+      };
+      pruebas.push(nueva);
+      emit('pruebas', {});
+      return ok(nueva.id);
     },
 
     revelar_prueba: ({ p_player_id, p_prueba_id }) => {

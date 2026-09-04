@@ -321,6 +321,18 @@ function nombreDe(playerId) {
   return p ? p.name : '?';
 }
 
+// Quién mandó una prueba: un jugador real, o el nombre/emoji sueltos que
+// puso el admin si la metió a mano (submitted_by null en ese caso).
+function avatarDePrueba(p) {
+  if (p.submitted_by) return avatarDe(p.submitted_by);
+  return p.autor_avatar || '❓';
+}
+
+function nombreConAvatarDePrueba(p) {
+  if (p.submitted_by) return nombreConAvatar(p.submitted_by);
+  return p.autor_nombre ? `${p.autor_avatar || '🎉'} ${p.autor_nombre}` : '?';
+}
+
 function renderHeader() {
   const chip = $('#user-chip');
   const tabs = $('#tabs');
@@ -567,7 +579,7 @@ function renderTablero() {
         cell.innerHTML = `
           <span class="lock-wrap">
             <i class="fa-solid fa-lock cell-lock-icon"></i>
-            <span class="cell-emoji-inside">${escapeHtml(avatarDe(prueba.submitted_by))}</span>
+            <span class="cell-emoji-inside">${escapeHtml(avatarDePrueba(prueba))}</span>
           </span>
         `;
         cell.addEventListener('click', () => abrirCeldaSubmission(prueba));
@@ -597,7 +609,7 @@ function renderTablero() {
       cell.innerHTML = `
         <span class="lock-wrap">
           <i class="fa-solid fa-lock cell-lock-icon"></i>
-          <span class="cell-emoji-inside">${escapeHtml(avatarDe(prueba.submitted_by))}</span>
+          <span class="cell-emoji-inside">${escapeHtml(avatarDePrueba(prueba))}</span>
         </span>
       `;
     }
@@ -837,7 +849,7 @@ function abrirCeldaSubmission(prueba) {
     return;
   }
   abrirModal(`
-    <div class="modal-emoji-header">${escapeHtml(avatarDe(prueba.submitted_by))}</div>
+    <div class="modal-emoji-header">${escapeHtml(avatarDePrueba(prueba))}</div>
     <h3>Prueba de ${escapeHtml(nombreDe(prueba.submitted_by))}</h3>
   `);
 }
@@ -902,7 +914,7 @@ async function abrirCelda(prueba, ev) {
   // a la vez quién ha sido el culpable (admin o quien mandó la prueba).
   if (!autorizado) {
     abrirModal(`
-      <div class="modal-emoji-header">${escapeHtml(avatarDe(prueba.submitted_by))}</div>
+      <div class="modal-emoji-header">${escapeHtml(avatarDePrueba(prueba))}</div>
       <h3>Prueba de ${escapeHtml(nombreDe(prueba.submitted_by))}</h3>
       <p class="modal-texto">Aún sin descubrir 🤫</p>
     `);
@@ -920,7 +932,7 @@ async function abrirCelda(prueba, ev) {
   }
   if (!texto) {
     abrirModal(`
-      <div class="modal-emoji-header">${escapeHtml(avatarDe(prueba.submitted_by))}</div>
+      <div class="modal-emoji-header">${escapeHtml(avatarDePrueba(prueba))}</div>
       <h3>Prueba de ${escapeHtml(nombreDe(prueba.submitted_by))}</h3>
       <p class="modal-texto">Aún sin descubrir 🤫</p>
     `);
@@ -1140,6 +1152,49 @@ function initAdminActions() {
   });
 
   $('#btn-crear-usuario').addEventListener('click', abrirModalCrearUsuario);
+  $('#btn-crear-prueba').addEventListener('click', abrirModalCrearPruebaManual);
+}
+
+function abrirModalCrearPruebaManual() {
+  abrirModal(`
+    <h3><i class="fa-solid fa-plus"></i> Añadir prueba</h3>
+    <p class="subtitle small">Se mete como si la hubiera mandado alguien, con el nombre y el emoji que pongas (no hace falta que sea un jugador real).</p>
+    <form id="form-prueba-manual">
+      <label class="field"><span><i class="fa-solid fa-scroll"></i> Texto de la prueba</span>
+        <textarea id="pm-texto" rows="3" maxlength="200" required></textarea>
+      </label>
+      <label class="field"><span><i class="fa-solid fa-signature"></i> Nombre del autor</span>
+        <input type="text" id="pm-nombre" maxlength="30" required autocomplete="off" />
+      </label>
+      <label class="field"><span><i class="fa-solid fa-face-grin-stars"></i> Avatar (emoji)</span>
+        <input type="text" id="pm-avatar" maxlength="4" placeholder="🎉" />
+      </label>
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-plus"></i> Añadir</button>
+      <p id="pm-error" class="error-msg hidden"></p>
+    </form>
+  `);
+
+  $('#form-prueba-manual').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const texto = $('#pm-texto').value.trim();
+    const nombre = $('#pm-nombre').value.trim();
+    const avatar = $('#pm-avatar').value.trim();
+    const errEl = $('#pm-error');
+    errEl.classList.add('hidden');
+    if (!texto || !nombre) return;
+
+    const { error } = await supabaseClient.rpc('admin_crear_prueba_manual', {
+      p_player_id: state.player.id, p_texto: texto, p_autor_nombre: nombre, p_autor_avatar: avatar || null,
+    });
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.classList.remove('hidden');
+      return;
+    }
+    cerrarModal();
+    mostrarToast('Prueba añadida');
+    await refrescarTrasCambioPruebas();
+  });
 }
 
 // ---------- admin: pruebas reportadas ----------
@@ -1176,7 +1231,7 @@ function renderPruebasAdmin(lista) {
           ${escapeHtml(p.texto)}
           ${p.foto_url ? '<i class="fa-solid fa-camera icono-tiene-foto" title="Tiene foto"></i>' : ''}
         </span>
-        <span class="li-subtitulo">${estadoPruebaAdmin(p)} &middot; de ${escapeHtml(nombreConAvatar(p.submitted_by))}</span>
+        <span class="li-subtitulo">${estadoPruebaAdmin(p)} &middot; de ${escapeHtml(nombreConAvatarDePrueba(p))}</span>
       </span>
       <span class="row-actions">
         <button class="btn btn-ghost btn-small" data-mover-prueba="${p.id}" title="Cambiar posición"><i class="fa-solid fa-arrows-up-down-left-right"></i></button>
@@ -1222,7 +1277,7 @@ function abrirModalMoverPrueba(p) {
       contenido = '<i class="fa-solid fa-gift"></i>';
     } else {
       clase += ' ocupada';
-      contenido = escapeHtml(avatarDe(x.submitted_by));
+      contenido = escapeHtml(avatarDePrueba(x));
     }
     return `<button type="button" class="${clase}" data-pos="${i}" ${esActual || !libre ? 'disabled' : ''}>${contenido}</button>`;
   }).join('');

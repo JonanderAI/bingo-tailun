@@ -60,6 +60,10 @@ create table if not exists pruebas (
 alter table pruebas add column if not exists responsable_id uuid references players(id) on delete set null;
 alter table pruebas add column if not exists gestionado_por uuid references players(id) on delete set null;
 alter table pruebas add column if not exists foto_url text; -- foto de recuerdo, opcional, al marcarla cumplida
+-- Prueba creada a mano por el admin, sin jugador real detrás: nombre y
+-- emoji sueltos (submitted_by se queda null en ese caso).
+alter table pruebas add column if not exists autor_nombre text;
+alter table pruebas add column if not exists autor_avatar text;
 
 create table if not exists game_state (
   id int primary key default 1,
@@ -135,7 +139,9 @@ create or replace view pruebas_publicas as
     case when revealed or libre then responsable_id else null end as responsable_id,
     created_at,
     gestionado_por,
-    case when revealed or libre then foto_url else null end as foto_url
+    case when revealed or libre then foto_url else null end as foto_url,
+    autor_nombre,
+    autor_avatar
   from pruebas;
 
 grant select on players_publicos to anon, authenticated;
@@ -959,6 +965,67 @@ end;
 $$;
 
 grant execute on function admin_mover_prueba(uuid, uuid, int) to anon;
+
+-- El admin mete una prueba a mano, sin que la haya mandado un jugador real:
+-- elige el texto, el nombre y el emoji que aparecen como "autor". Si el
+-- tablero ya está repartido no quedan casillas sueltas (están todas los
+-- 36 ocupadas, reales o comodín), así que en ese caso se reutiliza un
+-- comodín al azar convirtiéndolo en esta prueba nueva.
+create or replace function admin_crear_prueba_manual(p_player_id uuid, p_texto text, p_autor_nombre text, p_autor_avatar text)
+returns uuid
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+  v_pos int;
+  v_comodin_id uuid;
+  v_id uuid;
+  v_nombre text;
+  v_avatar text;
+begin
+  select role into v_role from players where id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+
+  v_nombre := trim(p_autor_nombre);
+  if v_nombre = '' then
+    raise exception 'Ponle un nombre al autor';
+  end if;
+  v_avatar := coalesce(nullif(trim(p_autor_avatar), ''), '🎉');
+
+  select id into v_comodin_id from pruebas where libre = true order by random() limit 1;
+
+  if v_comodin_id is not null then
+    update pruebas
+      set texto = capitaliza_texto(p_texto), submitted_by = null,
+          autor_nombre = v_nombre, autor_avatar = v_avatar,
+          libre = false, revealed = false, completada = false, completada_por = null,
+          gestionado_por = null, revealed_at = null, completada_at = null, foto_url = null
+      where id = v_comodin_id
+      returning id into v_id;
+    return v_id;
+  end if;
+
+  select pos into v_pos
+    from generate_series(0, 35) pos
+    where pos not in (select position from pruebas where position is not null)
+    order by random()
+    limit 1;
+
+  if v_pos is null then
+    raise exception 'No quedan casillas libres en el tablero';
+  end if;
+
+  insert into pruebas(texto, submitted_by, autor_nombre, autor_avatar, position)
+  values (capitaliza_texto(p_texto), null, v_nombre, v_avatar, v_pos)
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+grant execute on function admin_crear_prueba_manual(uuid, text, text, text) to anon;
 
 -- ---------- REALTIME ----------
 -- Añade las tablas a la publicación de Realtime, sin fallar si ya
