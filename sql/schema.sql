@@ -910,6 +910,56 @@ $$;
 
 grant execute on function admin_borrar_prueba(uuid, uuid) to anon;
 
+-- Cambiar la casilla de una prueba a otra libre. "Libre" es una casilla sin
+-- ninguna prueba real todavía (antes de empezar) o con un comodín (una vez
+-- empezado, el tablero está completo y toca desplazar ese comodín al hueco
+-- que deja la prueba movida, para que el tablero siga con las 36 casillas).
+create or replace function admin_mover_prueba(p_player_id uuid, p_prueba_id uuid, p_nueva_pos int)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_role text;
+  v_pos_actual int;
+  v_es_libre boolean;
+  v_destino_id uuid;
+  v_destino_libre boolean;
+begin
+  select p.role into v_role from players p where p.id = p_player_id;
+  if v_role <> 'admin' then
+    raise exception 'No autorizado';
+  end if;
+  if p_nueva_pos < 0 or p_nueva_pos > 35 then
+    raise exception 'Posición fuera del tablero';
+  end if;
+
+  select position, libre into v_pos_actual, v_es_libre from pruebas where id = p_prueba_id;
+  if v_pos_actual is null then
+    raise exception 'Esa prueba no tiene una posición asignada';
+  end if;
+  if v_es_libre then
+    raise exception 'Un comodín no se puede mover';
+  end if;
+  if v_pos_actual = p_nueva_pos then
+    return true;
+  end if;
+
+  select id, libre into v_destino_id, v_destino_libre from pruebas where position = p_nueva_pos;
+  if v_destino_id is not null and not v_destino_libre then
+    raise exception 'Esa casilla ya está ocupada por otra prueba';
+  end if;
+
+  if v_destino_id is not null then
+    update pruebas set position = v_pos_actual where id = v_destino_id;
+  end if;
+  update pruebas set position = p_nueva_pos where id = p_prueba_id;
+  return true;
+end;
+$$;
+
+grant execute on function admin_mover_prueba(uuid, uuid, int) to anon;
+
 -- ---------- REALTIME ----------
 -- Añade las tablas a la publicación de Realtime, sin fallar si ya
 -- estaban (para poder volver a pegar y ejecutar este script entero sin

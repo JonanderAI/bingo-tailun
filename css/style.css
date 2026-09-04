@@ -916,6 +916,32 @@ select option {
   flex-wrap: wrap;
 }
 
+/* ---------- Selector de casilla (mover prueba) ---------- */
+
+.mover-grid {
+  display: grid;
+  gap: 5px;
+  margin-top: 4px;
+}
+.mover-cell {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  border: 1.5px solid var(--card-border);
+  background: var(--bg-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0;
+  color: var(--text-dim);
+  transition: transform 0.12s;
+}
+.mover-cell.libre { border-color: var(--success); color: var(--success); cursor: pointer; }
+.mover-cell.libre:active { transform: scale(0.9); }
+.mover-cell.ocupada { opacity: 0.35; cursor: not-allowed; }
+.mover-cell.actual { border-color: var(--primary); color: var(--primary); cursor: default; }
+
 /* ---------- Modal ---------- */
 
 .modal-overlay {

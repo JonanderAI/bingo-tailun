@@ -1179,12 +1179,19 @@ function renderPruebasAdmin(lista) {
         <span class="li-subtitulo">${estadoPruebaAdmin(p)} &middot; de ${escapeHtml(nombreConAvatar(p.submitted_by))}</span>
       </span>
       <span class="row-actions">
+        <button class="btn btn-ghost btn-small" data-mover-prueba="${p.id}" title="Cambiar posición"><i class="fa-solid fa-arrows-up-down-left-right"></i></button>
         <button class="btn btn-ghost btn-small" data-editar-prueba="${p.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-ghost btn-small" data-borrar-prueba="${p.id}" title="Borrar"><i class="fa-solid fa-trash"></i></button>
       </span>
     </div>
   `).join('');
 
+  cont.querySelectorAll('[data-mover-prueba]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = lista.find(x => x.id === btn.dataset.moverPrueba);
+      if (p) abrirModalMoverPrueba(p);
+    });
+  });
   cont.querySelectorAll('[data-editar-prueba]').forEach(btn => {
     btn.addEventListener('click', () => {
       const p = lista.find(x => x.id === btn.dataset.editarPrueba);
@@ -1193,6 +1200,50 @@ function renderPruebasAdmin(lista) {
   });
   cont.querySelectorAll('[data-borrar-prueba]').forEach(btn => {
     btn.addEventListener('click', () => borrarPruebaAdmin(btn.dataset.borrarPrueba));
+  });
+}
+
+// Casillas libres para mover una prueba: sin ninguna prueba todavía
+// (antes de empezar) o con un comodín (una vez repartido el tablero).
+function abrirModalMoverPrueba(p) {
+  const ocupacion = new Array(BOARD_SIZE).fill(null);
+  state.pruebasAdmin.forEach(x => { if (x.position !== null) ocupacion[x.position] = x; });
+
+  const celdas = ocupacion.map((x, i) => {
+    const esActual = i === p.position;
+    const libre = !x || x.libre;
+    let clase = 'mover-cell';
+    let contenido = '';
+    if (esActual) {
+      clase += ' actual';
+      contenido = '<i class="fa-solid fa-location-dot"></i>';
+    } else if (libre) {
+      clase += ' libre';
+      contenido = '<i class="fa-solid fa-gift"></i>';
+    } else {
+      clase += ' ocupada';
+      contenido = escapeHtml(avatarDe(x.submitted_by));
+    }
+    return `<button type="button" class="${clase}" data-pos="${i}" ${esActual || !libre ? 'disabled' : ''}>${contenido}</button>`;
+  }).join('');
+
+  abrirModal(`
+    <h3><i class="fa-solid fa-arrows-up-down-left-right"></i> Cambiar posición</h3>
+    <p class="subtitle small">Elige una casilla libre para "${escapeHtml(p.texto)}". La casilla que deja se queda vacía.</p>
+    <div class="mover-grid" style="grid-template-columns: repeat(${LADO_TABLERO}, 1fr);">${celdas}</div>
+  `);
+
+  $('#modal-content').querySelectorAll('[data-pos]:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const nuevaPos = parseInt(btn.dataset.pos, 10);
+      const { error } = await supabaseClient.rpc('admin_mover_prueba', {
+        p_player_id: state.player.id, p_prueba_id: p.id, p_nueva_pos: nuevaPos,
+      });
+      if (error) { mostrarToast(error.message); return; }
+      cerrarModal();
+      mostrarToast('Posición cambiada');
+      await refrescarTrasCambioPruebas();
+    });
   });
 }
 

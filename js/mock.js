@@ -289,6 +289,22 @@ function crearClienteMock() {
       return ok(true);
     },
 
+    admin_mover_prueba: ({ p_player_id, p_prueba_id, p_nueva_pos }) => {
+      const player = players.find(p => p.id === p_player_id);
+      if (!player || player.role !== 'admin') return fail('No autorizado');
+      const prueba = pruebas.find(p => p.id === p_prueba_id && !p.libre);
+      if (!prueba || prueba.position === null) return fail('Esa prueba no tiene una posición asignada');
+      if (p_nueva_pos < 0 || p_nueva_pos > 35) return fail('Posición fuera del tablero');
+      if (prueba.position === p_nueva_pos) return ok(true);
+      const destino = pruebas.find(p => p.position === p_nueva_pos);
+      if (destino && !destino.libre) return fail('Esa casilla ya está ocupada por otra prueba');
+      const posActual = prueba.position;
+      if (destino) destino.position = posActual;
+      prueba.position = p_nueva_pos;
+      emit('pruebas', {});
+      return ok(true);
+    },
+
     revelar_prueba: ({ p_player_id, p_prueba_id }) => {
       const player = players.find(p => p.id === p_player_id);
       const prueba = pruebas.find(p => p.id === p_prueba_id);
